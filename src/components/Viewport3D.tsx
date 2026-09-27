@@ -9,6 +9,7 @@ import {
   TransformSettings,
 } from '../types/studio';
 import { getProceduralSurfaceTexture } from '../utils/proceduralTextures';
+import { Language, t } from '../utils/i18n';
 import {
   Box,
   Compass,
@@ -22,6 +23,7 @@ import {
 } from 'lucide-react';
 
 interface Viewport3DProps {
+  language: Language;
   modelGroup: THREE.Group | null;
   materialSettings: MaterialSettings;
   lightingSettings: LightingSettings;
@@ -48,6 +50,7 @@ function sphericalToCartesian(
 }
 
 export const Viewport3D: React.FC<Viewport3DProps> = ({
+  language,
   modelGroup,
   materialSettings,
   lightingSettings,
@@ -610,11 +613,14 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
       <div className="absolute top-3 left-3 md:top-4 md:left-4 z-10 flex items-center gap-1 p-1 rounded-lg bg-black/55 backdrop-blur-md border border-white/10 max-w-[calc(100vw-24px)] overflow-x-auto no-scrollbar">
         {(
           [
-            { id: 'perspective', label: 'Perspektif' },
-            { id: 'front', label: 'Ön' },
-            { id: 'right', label: 'Sağ' },
-            { id: 'top', label: 'Üst' },
-            { id: 'iso', label: 'İzometrik' },
+            {
+              id: 'perspective',
+              label: t(language, 'Perspektif', 'Perspective'),
+            },
+            { id: 'front', label: t(language, 'Ön', 'Front') },
+            { id: 'right', label: t(language, 'Sağ', 'Right') },
+            { id: 'top', label: t(language, 'Üst', 'Top') },
+            { id: 'iso', label: t(language, 'İzometrik', 'Isometric') },
           ] as { id: CameraPresetView; label: string }[]
         ).map((cam) => (
           <button
@@ -642,10 +648,12 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
               ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
               : 'text-slate-300 hover:text-white hover:bg-white/5'
           }`}
-          title="Tel Kafes (Wireframe) Görünümü"
+          title={t(language, 'Tel Kafes (Wireframe) Görünümü', 'Wireframe View')}
         >
           <Box className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Tel Kafes</span>
+          <span className="hidden sm:inline">
+            {t(language, 'Tel Kafes', 'Wireframe')}
+          </span>
         </button>
 
         <button
@@ -656,10 +664,18 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
               ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
               : 'text-slate-300 hover:text-white hover:bg-white/5'
           }`}
-          title="Fasetli (Flat) / Pürüzsüz (Smooth) Gölgelendirme"
+          title={t(
+            language,
+            'Fasetli (Flat) / Pürüzsüz (Smooth) Gölgelendirme',
+            'Flat / Smooth Shading'
+          )}
         >
           <Sparkles className="w-3.5 h-3.5" />
-          <span>{materialSettings.flatShading ? 'Fasetli' : 'Pürüzsüz'}</span>
+          <span>
+            {materialSettings.flatShading
+              ? t(language, 'Fasetli', 'Flat')
+              : t(language, 'Pürüzsüz', 'Smooth')}
+          </span>
         </button>
 
         <div className="w-px h-4 bg-white/10 mx-0.5 shrink-0" />
@@ -672,10 +688,12 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
               ? 'bg-white/10 text-white'
               : 'text-slate-400 hover:text-white hover:bg-white/5'
           }`}
-          title="Stüdyo Zemin Izgarası"
+          title={t(language, 'Stüdyo Zemin Izgarası', 'Studio Floor Grid')}
         >
           <Grid className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Izgara</span>
+          <span className="hidden sm:inline">
+            {t(language, 'Izgara', 'Grid')}
+          </span>
         </button>
 
         <button
@@ -686,10 +704,12 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
               ? 'bg-white/10 text-white'
               : 'text-slate-400 hover:text-white hover:bg-white/5'
           }`}
-          title="X/Y/Z Eksen Çizgileri"
+          title={t(language, 'X/Y/Z Eksen Çizgileri', 'X/Y/Z Axis Lines')}
         >
           <Compass className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Eksen</span>
+          <span className="hidden sm:inline">
+            {t(language, 'Eksen', 'Axes')}
+          </span>
         </button>
 
         <button
@@ -702,10 +722,12 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
               ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
               : 'text-slate-400 hover:text-white hover:bg-white/5'
           }`}
-          title="Işık Kaynaklarını Sahnede Göster"
+          title={t(language, 'Işık Kaynaklarını Sahnede Göster', 'Show Light Helpers')}
         >
           <Sun className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Işıklar</span>
+          <span className="hidden sm:inline">
+            {t(language, 'Işıklar', 'Lights')}
+          </span>
         </button>
 
         <button
@@ -716,7 +738,7 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
               ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
               : 'text-slate-400 hover:text-white hover:bg-white/5'
           }`}
-          title="Otomatik 360° Stüdyo Dönüşü"
+          title={t(language, 'Otomatik 360° Stüdyo Dönüşü', 'Auto 360° Turntable')}
         >
           <RotateCcw className="w-3.5 h-3.5" />
           <span>360°</span>
@@ -728,21 +750,23 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
           type="button"
           onClick={() => setCameraPreset('perspective')}
           className="min-h-[36px] flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-colors whitespace-nowrap cursor-pointer"
-          title="Kamerayı Merkeze Sıfırla"
+          title={t(language, 'Kamerayı Merkeze Sıfırla', 'Reset Camera Focus')}
         >
           <Maximize2 className="w-3.5 h-3.5" />
-          <span>Odakla</span>
+          <span>{t(language, 'Odakla', 'Focus')}</span>
         </button>
       </div>
 
       {/* Subtle Bottom-Left Controls Hint for Desktop / Mobile */}
       <div className="hidden lg:flex absolute bottom-4 left-4 z-10 items-center gap-2 px-3 py-1.5 rounded-lg bg-black/50 backdrop-blur-sm border border-white/10 text-[11px] text-slate-300">
         <Eye className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-        <span>Sol Tık: Döndür</span>
+        <span>{t(language, 'Sol Tık: Döndür', 'Left Click: Orbit')}</span>
         <span aria-hidden="true" className="text-white/30">·</span>
-        <span>Sağ Tık: Kaydır</span>
+        <span>{t(language, 'Sağ Tık: Kaydır', 'Right Click: Pan')}</span>
         <span aria-hidden="true" className="text-white/30">·</span>
-        <span>Tekerlek / Çimdik: Yakınlaştır</span>
+        <span>
+          {t(language, 'Tekerlek / Çimdik: Yakınlaştır', 'Scroll / Pinch: Zoom')}
+        </span>
       </div>
 
       {/* Drag & Drop File Overlay */}
@@ -750,10 +774,18 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
         <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-950/80 backdrop-blur-md border-2 border-dashed border-amber-400 m-4 rounded-2xl pointer-events-none">
           <Upload className="w-12 h-12 text-amber-400 mb-3 animate-bounce" />
           <p className="text-lg font-display font-semibold text-white">
-            3B Model Dosyasını Sahneye Bırakın
+            {t(
+              language,
+              '3B Model Dosyasını Sahneye Bırakın',
+              'Drop 3D Model File Into Viewport'
+            )}
           </p>
           <p className="text-xs text-slate-300 mt-1">
-            .blend, .stl, .obj, .glb, .ply, .fbx, .3ds ve .dae formatları desteklenir
+            {t(
+              language,
+              '.blend, .stl, .obj, .glb, .ply, .fbx, .3ds ve .dae formatları desteklenir',
+              'Supports .blend, .stl, .obj, .glb, .ply, .fbx, .3ds, and .dae formats'
+            )}
           </p>
         </div>
       )}
@@ -770,11 +802,18 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
       {webglLost && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#0B0D11] p-6 text-center">
           <p className="text-base font-semibold text-white mb-2">
-            WebGL Grafik Bağlamı Askıya Alındı
+            {t(
+              language,
+              'WebGL Grafik Bağlamı Askıya Alındı',
+              'WebGL Graphics Context Suspended'
+            )}
           </p>
           <p className="text-xs text-slate-400 max-w-md mb-4">
-            Tarayıcınız 3B donanım hızlandırmasını geçici olarak sıfırladı. Sahneyi yeniden
-            başlatmak için sayfayı yenileyebilir veya varsayılan kameraya dönebilirsiniz.
+            {t(
+              language,
+              'Tarayıcınız 3B donanım hızlandırmasını geçici olarak sıfırladı. Sahneyi yeniden başlatmak için sayfayı yenileyebilir veya varsayılan kameraya dönebilirsiniz.',
+              'Your browser temporarily reset 3D hardware acceleration. Refresh the page or reset the camera to restore the scene.'
+            )}
           </p>
         </div>
       )}

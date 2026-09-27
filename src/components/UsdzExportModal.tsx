@@ -17,8 +17,10 @@ import {
   exportToGlb,
   generateUsdzPackage,
 } from '../utils/exporters';
+import { Language, t } from '../utils/i18n';
 
 interface UsdzExportModalProps {
+  language: Language;
   isOpen: boolean;
   onClose: () => void;
   modelGroup: THREE.Group | null;
@@ -27,14 +29,16 @@ interface UsdzExportModalProps {
 }
 
 export const UsdzExportModal: React.FC<UsdzExportModalProps> = ({
+  language,
   isOpen,
   onClose,
   modelGroup,
   materialSettings,
   modelStats,
 }) => {
+  const numLocale = language === 'en' ? 'en-US' : 'tr-TR';
   const defaultBaseName = modelStats.fileName
-    .replace(/\.(blend|stl|obj|glb|gltf|usdz)$/i, '')
+    .replace(/\.(blend|blend1|blend2|stl|obj|glb|gltf|ply|fbx|3ds|dae|usdz)$/i, '')
     .trim();
 
   const [options, setOptions] = useState<UsdzExportOptions>({
@@ -54,7 +58,7 @@ export const UsdzExportModal: React.FC<UsdzExportModalProps> = ({
 
   useEffect(() => {
     const clean = modelStats.fileName
-      .replace(/\.(blend|stl|obj|glb|gltf|usdz)$/i, '')
+      .replace(/\.(blend|blend1|blend2|stl|obj|glb|gltf|ply|fbx|3ds|dae|usdz)$/i, '')
       .trim();
     setOptions((prev) => ({ ...prev, fileName: clean || 'forma3d_model' }));
     setUsdzResult(null);
@@ -87,7 +91,11 @@ export const UsdzExportModal: React.FC<UsdzExportModalProps> = ({
       setExportError(
         err instanceof Error
           ? err.message
-          : 'USDZ paketi oluşturulurken beklenmeyen bir hata oluştu.'
+          : t(
+              language,
+              'USDZ paketi oluşturulurken beklenmeyen bir hata oluştu.',
+              'An unexpected error occurred while building the USDZ package.'
+            )
       );
     } finally {
       setIsExporting(false);
@@ -107,10 +115,14 @@ export const UsdzExportModal: React.FC<UsdzExportModalProps> = ({
         <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-white/[0.08] shrink-0">
           <div>
             <h2 className="text-sm sm:text-base font-display font-bold text-white">
-              .USDZ Dışa Aktar
+              {t(language, '.USDZ Dışa Aktar', 'Export .USDZ')}
             </h2>
             <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
-              Apple AR QuickLook ve iOS/VisionOS ile tam uyumlu PBR çıktı
+              {t(
+                language,
+                'Apple AR QuickLook ve iOS/VisionOS ile tam uyumlu PBR çıktı',
+                'PBR output fully compatible with Apple AR QuickLook & iOS/VisionOS'
+              )}
             </p>
           </div>
           <button
@@ -127,7 +139,7 @@ export const UsdzExportModal: React.FC<UsdzExportModalProps> = ({
           {/* File Name Input */}
           <div>
             <label className="block text-xs font-medium text-slate-300 mb-1.5">
-              Çıktı Dosya Adı
+              {t(language, 'Çıktı Dosya Adı', 'Output File Name')}
             </label>
             <div className="flex items-center rounded-lg bg-[#0B0D11] border border-white/10 focus-within:border-amber-500/60 overflow-hidden">
               <input
@@ -137,7 +149,7 @@ export const UsdzExportModal: React.FC<UsdzExportModalProps> = ({
                   setOptions({ ...options, fileName: e.target.value })
                 }
                 className="flex-1 bg-transparent px-3.5 py-2 text-xs text-white outline-none font-mono-tabular"
-                placeholder="model_adi"
+                placeholder={t(language, 'model_adi', 'model_name')}
               />
               <span className="px-3 py-2 text-xs font-mono-tabular text-amber-400 bg-white/[0.03] border-l border-white/10">
                 .usdz
@@ -148,14 +160,23 @@ export const UsdzExportModal: React.FC<UsdzExportModalProps> = ({
           {/* Scale Unit Selector */}
           <div>
             <label className="block text-xs font-medium text-slate-300 mb-1.5">
-              AR Sahne Ölçek Birimi
+              {t(language, 'AR Sahne Ölçek Birimi', 'AR Scene Scale Unit')}
             </label>
             <div className="grid grid-cols-3 gap-2">
               {(
                 [
-                  { id: 'm', label: 'Metre (1:1 Standart)' },
-                  { id: 'cm', label: 'Santimetre (1:100)' },
-                  { id: 'mm', label: 'Milimetre (CAD)' },
+                  {
+                    id: 'm',
+                    label: t(language, 'Metre (1:1 Standart)', 'Meters (1:1 Std)'),
+                  },
+                  {
+                    id: 'cm',
+                    label: t(language, 'Santimetre (1:100)', 'Centimeters (1:100)'),
+                  },
+                  {
+                    id: 'mm',
+                    label: t(language, 'Milimetre (CAD)', 'Millimeters (CAD)'),
+                  },
                 ] as const
               ).map((unit) => (
                 <button
@@ -179,10 +200,18 @@ export const UsdzExportModal: React.FC<UsdzExportModalProps> = ({
             <label className="flex items-center justify-between cursor-pointer">
               <div>
                 <div className="text-xs font-medium text-slate-200">
-                  AR Zemin Hizalaması (Y = 0)
+                  {t(
+                    language,
+                    'AR Zemin Hizalaması (Y = 0)',
+                    'AR Floor Alignment (Y = 0)'
+                  )}
                 </div>
                 <div className="text-[11px] text-slate-400">
-                  Modelin alt tabanını gerçek masa/zemin düzlemine oturtur
+                  {t(
+                    language,
+                    'Modelin alt tabanını gerçek masa/zemin düzlemine oturtur',
+                    'Aligns the bottom of the model to real-world table/floor planes'
+                  )}
                 </div>
               </div>
               <input
@@ -198,10 +227,18 @@ export const UsdzExportModal: React.FC<UsdzExportModalProps> = ({
             <label className="flex items-center justify-between cursor-pointer">
               <div>
                 <div className="text-xs font-medium text-slate-200">
-                  PBR Malzeme ve Yüzey Dokusunu Göm
+                  {t(
+                    language,
+                    'PBR Malzeme ve Yüzey Dokusunu Göm',
+                    'Embed PBR Materials & Surface Textures'
+                  )}
                 </div>
                 <div className="text-[11px] text-slate-400">
-                  Renk, metaliklik, pürüzlülük ve prosedürel dokuyu USDZ içine paketler
+                  {t(
+                    language,
+                    'Renk, metaliklik, pürüzlülük ve prosedürel dokuyu USDZ içine paketler',
+                    'Bakes color, metalness, roughness, and surface relief into USDZ'
+                  )}
                 </div>
               </div>
               <input
@@ -221,7 +258,7 @@ export const UsdzExportModal: React.FC<UsdzExportModalProps> = ({
           {/* Summary Telemetry */}
           <div className="p-3.5 rounded-xl bg-[#0B0D11] border border-white/[0.06] flex items-center justify-between text-xs">
             <div className="text-slate-400">
-              <span>Kaynak: </span>
+              <span>{t(language, 'Kaynak: ', 'Source: ')}</span>
               <span className="text-slate-200 font-medium">
                 {modelStats.fileFormat}
               </span>
@@ -229,11 +266,14 @@ export const UsdzExportModal: React.FC<UsdzExportModalProps> = ({
                 ·
               </span>
               <span className="font-mono-tabular">
-                {modelStats.triangleCount.toLocaleString('tr-TR')} üçgen
+                {modelStats.triangleCount.toLocaleString(numLocale)}{' '}
+                {t(language, 'üçgen', 'tris')}
               </span>
             </div>
             <div className="text-slate-400 font-mono-tabular">
-              Metal: {Math.round(materialSettings.metalness * 100)}% · Pürüz:{' '}
+              {t(language, 'Metal', 'Metal')}:{' '}
+              {Math.round(materialSettings.metalness * 100)}% ·{' '}
+              {t(language, 'Pürüz', 'Rough')}:{' '}
               {Math.round(materialSettings.roughness * 100)}%
             </div>
           </div>
@@ -250,10 +290,16 @@ export const UsdzExportModal: React.FC<UsdzExportModalProps> = ({
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                 <div className="min-w-0">
                   <div className="text-xs font-semibold text-emerald-200 truncate">
-                    {usdzResult.fileName} hazır ({formatByteSize(usdzResult.byteSize)})
+                    {usdzResult.fileName}{' '}
+                    {t(language, 'hazır', 'ready')} (
+                    {formatByteSize(usdzResult.byteSize)})
                   </div>
                   <div className="text-[11px] text-emerald-300/80">
-                    iOS/iPadOS cihazlarda doğrudan AR QuickLook ile açabilirsiniz
+                    {t(
+                      language,
+                      'iOS/iPadOS cihazlarda doğrudan AR QuickLook ile açabilirsiniz',
+                      'Open directly in AR QuickLook on iOS/iPadOS devices'
+                    )}
                   </div>
                 </div>
               </div>
@@ -264,7 +310,7 @@ export const UsdzExportModal: React.FC<UsdzExportModalProps> = ({
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500 text-slate-950 text-xs font-semibold hover:bg-emerald-400 transition-colors whitespace-nowrap shrink-0"
               >
                 <Smartphone className="w-3.5 h-3.5" />
-                <span>AR / İndir</span>
+                <span>{t(language, 'AR / İndir', 'AR / Download')}</span>
               </a>
             </div>
           )}
@@ -280,14 +326,26 @@ export const UsdzExportModal: React.FC<UsdzExportModalProps> = ({
               <Download className="w-4 h-4" />
               <span>
                 {isExporting
-                  ? '.USDZ Paketi Derleniyor...'
-                  : '.USDZ Formatında Dışa Aktar'}
+                  ? t(
+                      language,
+                      '.USDZ Paketi Derleniyor...',
+                      'Compiling .USDZ Package...'
+                    )
+                  : t(
+                      language,
+                      '.USDZ Formatında Dışa Aktar',
+                      'Export as .USDZ'
+                    )}
               </span>
             </button>
 
             <div className="flex items-center justify-between pt-2 border-t border-white/[0.06]">
               <span className="text-[11px] text-slate-400">
-                Alternatif 3B Çıktı Formatları:
+                {t(
+                  language,
+                  'Alternatif 3B Çıktı Formatları:',
+                  'Alternative 3D Output Formats:'
+                )}
               </span>
               <div className="flex items-center gap-2">
                 <button
@@ -299,7 +357,7 @@ export const UsdzExportModal: React.FC<UsdzExportModalProps> = ({
                   className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/[0.04] hover:bg-white/[0.09] text-xs text-slate-300 transition-colors cursor-pointer"
                 >
                   <FileBox className="w-3.5 h-3.5 text-amber-400" />
-                  <span>.GLB İndir</span>
+                  <span>{t(language, '.GLB İndir', 'Download .GLB')}</span>
                 </button>
                 <button
                   type="button"
@@ -310,7 +368,7 @@ export const UsdzExportModal: React.FC<UsdzExportModalProps> = ({
                   className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/[0.04] hover:bg-white/[0.09] text-xs text-slate-300 transition-colors cursor-pointer"
                 >
                   <FileBox className="w-3.5 h-3.5 text-sky-400" />
-                  <span>.STL İndir</span>
+                  <span>{t(language, '.STL İndir', 'Download .STL')}</span>
                 </button>
               </div>
             </div>

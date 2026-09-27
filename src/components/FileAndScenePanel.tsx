@@ -11,8 +11,10 @@ import {
 } from 'lucide-react';
 import { ModelStats, TransformSettings } from '../types/studio';
 import { SAMPLE_MODELS, downloadSampleBlendFile } from '../utils/sampleModels';
+import { Language, SAMPLE_MODEL_TRANSLATIONS, t } from '../utils/i18n';
 
 interface FileAndScenePanelProps {
+  language: Language;
   modelStats: ModelStats;
   activeSampleId: string | null;
   transformSettings: TransformSettings;
@@ -25,6 +27,7 @@ interface FileAndScenePanelProps {
 }
 
 export const FileAndScenePanel: React.FC<FileAndScenePanelProps> = ({
+  language,
   modelStats,
   activeSampleId,
   transformSettings,
@@ -36,6 +39,7 @@ export const FileAndScenePanel: React.FC<FileAndScenePanelProps> = ({
   onClose,
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const numLocale = language === 'en' ? 'en-US' : 'tr-TR';
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -51,7 +55,7 @@ export const FileAndScenePanel: React.FC<FileAndScenePanelProps> = ({
       {onClose && (
         <div className="lg:hidden flex items-center justify-between px-5 py-3.5 border-b border-white/[0.07] bg-[#0E1017]">
           <span className="text-xs font-semibold text-slate-200">
-            Model & Dosya Gezgini
+            {t(language, 'Model & Dosya Gezgini', 'Model & Scene Explorer')}
           </span>
           <button
             type="button"
@@ -67,7 +71,7 @@ export const FileAndScenePanel: React.FC<FileAndScenePanelProps> = ({
       <div className="p-4 sm:p-5 border-b border-white/[0.07]">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-white tracking-tight">
-            Model İçe Aktar
+            {t(language, 'Model İçe Aktar', 'Import 3D Model')}
           </h2>
           <span className="text-[11px] text-slate-400">
             BLEND · STL · OBJ · GLB · PLY · FBX · 3DS · DAE
@@ -91,22 +95,28 @@ export const FileAndScenePanel: React.FC<FileAndScenePanelProps> = ({
             <FileUp className="w-4 h-4" />
           </div>
           <span className="text-xs font-semibold text-white">
-            3B Model Dosyası Seçin
+            {t(language, '3B Model Dosyası Seçin', 'Select 3D Model File')}
           </span>
           <span className="text-[11px] text-slate-400 mt-1">
-            .blend, .stl, .obj, .glb, .ply, .fbx, .3ds veya .dae
+            {t(
+              language,
+              '.blend, .stl, .obj, .glb, .ply, .fbx, .3ds veya .dae',
+              '.blend, .stl, .obj, .glb, .ply, .fbx, .3ds, or .dae'
+            )}
           </span>
         </button>
 
         <div className="mt-3 flex items-center justify-between text-[11px] text-slate-400">
-          <span>Test için gerçek .blend dosyası:</span>
+          <span>
+            {t(language, 'Test için gerçek .blend dosyası:', 'Sample binary .blend file:')}
+          </span>
           <button
             type="button"
             onClick={downloadSampleBlendFile}
             className="inline-flex items-center gap-1 text-amber-400 hover:text-amber-300 font-medium transition-colors cursor-pointer whitespace-nowrap"
           >
             <Download className="w-3 h-3" />
-            <span>Örnek .blend İndir</span>
+            <span>{t(language, 'Örnek .blend İndir', 'Download .blend')}</span>
           </button>
         </div>
       </div>
@@ -114,11 +124,14 @@ export const FileAndScenePanel: React.FC<FileAndScenePanelProps> = ({
       {/* 2. Built-in Sample CAD / Blender Models */}
       <div className="p-5 border-b border-white/[0.07]">
         <h3 className="text-xs font-semibold text-slate-300 mb-3">
-          Hazır Stüdyo Modelleri
+          {t(language, 'Hazır Stüdyo Modelleri', 'Built-in Studio Models')}
         </h3>
         <div className="space-y-1.5">
           {SAMPLE_MODELS.map((sample) => {
             const isSelected = activeSampleId === sample.id;
+            const trInfo = SAMPLE_MODEL_TRANSLATIONS[sample.id];
+            const displayName = trInfo ? trInfo.name[language] : sample.name;
+            const displaySubtitle = trInfo ? trInfo.subtitle[language] : sample.subtitle;
             return (
               <button
                 key={sample.id}
@@ -132,14 +145,14 @@ export const FileAndScenePanel: React.FC<FileAndScenePanelProps> = ({
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-semibold truncate">
-                    {sample.name}
+                    {displayName}
                   </span>
                   <span className="text-[11px] font-mono-tabular text-amber-400 shrink-0">
                     .{sample.formatBadge.toLowerCase()}
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-400 mt-0.5 truncate">
-                  {sample.subtitle}
+                  {displaySubtitle}
                 </p>
               </button>
             );
@@ -150,7 +163,7 @@ export const FileAndScenePanel: React.FC<FileAndScenePanelProps> = ({
       {/* 3. Active Geometry Telemetry (Unboxed Metadata with Tabular Numerals) */}
       <div className="p-5 border-b border-white/[0.07]">
         <h3 className="text-xs font-semibold text-slate-300 mb-2.5">
-          Aktif Geometri Bilgisi
+          {t(language, 'Aktif Geometri Bilgisi', 'Active Geometry Info')}
         </h3>
         <div className="text-xs text-white font-medium truncate">
           {modelStats.fileName}
@@ -169,26 +182,34 @@ export const FileAndScenePanel: React.FC<FileAndScenePanelProps> = ({
 
         <div className="grid grid-cols-2 gap-3 mt-3.5 pt-3.5 border-t border-white/[0.06]">
           <div>
-            <div className="text-[11px] text-slate-400">Köşe (Vertex)</div>
+            <div className="text-[11px] text-slate-400">
+              {t(language, 'Köşe (Vertex)', 'Vertices')}
+            </div>
             <div className="text-sm font-semibold text-white font-mono-tabular mt-0.5">
-              {modelStats.vertexCount.toLocaleString('tr-TR')}
+              {modelStats.vertexCount.toLocaleString(numLocale)}
             </div>
           </div>
           <div>
-            <div className="text-[11px] text-slate-400">Üçgen Yüzey</div>
+            <div className="text-[11px] text-slate-400">
+              {t(language, 'Üçgen Yüzey', 'Triangles')}
+            </div>
             <div className="text-sm font-semibold text-white font-mono-tabular mt-0.5">
-              {modelStats.triangleCount.toLocaleString('tr-TR')}
+              {modelStats.triangleCount.toLocaleString(numLocale)}
             </div>
           </div>
         </div>
 
         <div className="mt-3 pt-3 border-t border-white/[0.06]">
           <div className="text-[11px] text-slate-400 mb-1">
-            Sınırlayıcı Kutu Boyutları (X · Y · Z)
+            {t(
+              language,
+              'Sınırlayıcı Kutu Boyutları (X · Y · Z)',
+              'Bounding Box Dimensions (X · Y · Z)'
+            )}
           </div>
           <div className="text-xs text-slate-200 font-mono-tabular">
             {modelStats.dimensions.x.toFixed(2)} × {modelStats.dimensions.y.toFixed(2)} ×{' '}
-            {modelStats.dimensions.z.toFixed(2)} birim
+            {modelStats.dimensions.z.toFixed(2)} {t(language, 'birim', 'units')}
           </div>
         </div>
       </div>
@@ -199,7 +220,7 @@ export const FileAndScenePanel: React.FC<FileAndScenePanelProps> = ({
           <div className="flex items-center gap-1.5">
             <Layers className="w-3.5 h-3.5 text-slate-400" />
             <h3 className="text-xs font-semibold text-slate-300">
-              Alt Katmanlar ({modelStats.subMeshes.length})
+              {t(language, 'Alt Katmanlar', 'Sub-Meshes')} ({modelStats.subMeshes.length})
             </h3>
           </div>
         </div>
@@ -219,14 +240,19 @@ export const FileAndScenePanel: React.FC<FileAndScenePanelProps> = ({
                   {sub.name}
                 </div>
                 <div className="text-[10px] text-slate-500 font-mono-tabular">
-                  {sub.triangles.toLocaleString('tr-TR')} üçgen
+                  {sub.triangles.toLocaleString(numLocale)}{' '}
+                  {t(language, 'üçgen', 'tris')}
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => onToggleSubMeshVisibility(sub.id)}
                 className="p-1 rounded text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer shrink-0"
-                title={sub.visible ? 'Katmanı Gizle' : 'Katmanı Göster'}
+                title={
+                  sub.visible
+                    ? t(language, 'Katmanı Gizle', 'Hide Sub-Mesh')
+                    : t(language, 'Katmanı Göster', 'Show Sub-Mesh')
+                }
               >
                 {sub.visible ? (
                   <Eye className="w-3.5 h-3.5" />
@@ -245,7 +271,7 @@ export const FileAndScenePanel: React.FC<FileAndScenePanelProps> = ({
           <div className="flex items-center gap-1.5">
             <Sliders className="w-3.5 h-3.5 text-slate-400" />
             <h3 className="text-xs font-semibold text-slate-300">
-              Dönüşüm ve Hizalama
+              {t(language, 'Dönüşüm ve Hizalama', 'Transform & Alignment')}
             </h3>
           </div>
           <button
@@ -254,14 +280,16 @@ export const FileAndScenePanel: React.FC<FileAndScenePanelProps> = ({
             className="inline-flex items-center gap-1 text-[11px] text-slate-400 hover:text-white transition-colors cursor-pointer"
           >
             <RotateCcw className="w-3 h-3" />
-            <span>Sıfırla</span>
+            <span>{t(language, 'Sıfırla', 'Reset')}</span>
           </button>
         </div>
 
         <div className="space-y-3">
           <div>
             <div className="flex justify-between text-xs mb-1">
-              <span className="text-slate-400">Model Ölçeği</span>
+              <span className="text-slate-400">
+                {t(language, 'Model Ölçeği', 'Model Scale')}
+              </span>
               <span className="font-mono-tabular text-slate-200">
                 {transformSettings.scale.toFixed(2)}x
               </span>
@@ -282,9 +310,9 @@ export const FileAndScenePanel: React.FC<FileAndScenePanelProps> = ({
           <div className="grid grid-cols-3 gap-2 pt-1">
             {(
               [
-                { key: 'rotationX', label: 'Eksen X' },
-                { key: 'rotationY', label: 'Eksen Y' },
-                { key: 'rotationZ', label: 'Eksen Z' },
+                { key: 'rotationX', label: t(language, 'Eksen X', 'Axis X') },
+                { key: 'rotationY', label: t(language, 'Eksen Y', 'Axis Y') },
+                { key: 'rotationZ', label: t(language, 'Eksen Z', 'Axis Z') },
               ] as const
             ).map((axis) => (
               <div key={axis.key}>
@@ -303,7 +331,7 @@ export const FileAndScenePanel: React.FC<FileAndScenePanelProps> = ({
                   }
                   className="w-full py-1.5 px-2 rounded-md bg-white/[0.04] hover:bg-white/[0.09] border border-white/[0.07] text-xs font-medium text-slate-200 transition-colors cursor-pointer whitespace-nowrap"
                 >
-                  +90° Çevir
+                  {t(language, '+90° Çevir', '+90° Rotate')}
                 </button>
               </div>
             ))}
@@ -311,7 +339,11 @@ export const FileAndScenePanel: React.FC<FileAndScenePanelProps> = ({
 
           <label className="flex items-center justify-between pt-2 cursor-pointer">
             <span className="text-xs text-slate-300">
-              Modeli Stüdyo Zeminine Oturt
+              {t(
+                language,
+                'Modeli Stüdyo Zeminine Oturt',
+                'Align Model to Studio Floor'
+              )}
             </span>
             <input
               type="checkbox"

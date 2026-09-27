@@ -11,17 +11,23 @@ import {
   LIGHTING_PRESETS,
 } from '../utils/studioPresets';
 import {
+  COLOR_SWATCH_TRANSLATIONS,
+  FINISH_TRANSLATIONS,
+  LIGHTING_PRESET_TRANSLATIONS,
+  Language,
+  t,
+} from '../utils/i18n';
+import {
   RotateCcw,
   Sun,
   Palette,
   X,
-  Sparkles,
   Sliders,
   Check,
-  Layers,
 } from 'lucide-react';
 
 interface MaterialAndLightingInspectorProps {
+  language: Language;
   activeTab: 'material' | 'lighting';
   onTabChange: (tab: 'material' | 'lighting') => void;
   materialSettings: MaterialSettings;
@@ -38,6 +44,7 @@ interface MaterialAndLightingInspectorProps {
 export const MaterialAndLightingInspector: React.FC<
   MaterialAndLightingInspectorProps
 > = ({
+  language,
   activeTab,
   onTabChange,
   materialSettings,
@@ -89,7 +96,9 @@ export const MaterialAndLightingInspector: React.FC<
       {onClose && (
         <div className="lg:hidden flex items-center justify-between px-5 py-3.5 border-b border-white/[0.07] bg-[#0E1017]">
           <span className="text-xs font-semibold text-slate-200">
-            {activeTab === 'material' ? 'Malzeme & Doku Stüdyosu' : 'Işık ve Sahne Stüdyosu'}
+            {activeTab === 'material'
+              ? t(language, 'Malzeme & Doku Stüdyosu', 'Material & Texture Studio')
+              : t(language, 'Işık ve Sahne Stüdyosu', 'Lighting & Scene Studio')}
           </span>
           <button
             type="button"
@@ -114,7 +123,7 @@ export const MaterialAndLightingInspector: React.FC<
             }`}
           >
             <Palette className="w-3.5 h-3.5" />
-            <span>Malzeme ve Renk</span>
+            <span>{t(language, 'Malzeme ve Renk', 'Material & Color')}</span>
           </button>
           <button
             type="button"
@@ -126,7 +135,7 @@ export const MaterialAndLightingInspector: React.FC<
             }`}
           >
             <Sun className="w-3.5 h-3.5" />
-            <span>Işık ve Sahne</span>
+            <span>{t(language, 'Işık ve Sahne', 'Lighting & Scene')}</span>
           </button>
         </div>
       </div>
@@ -140,10 +149,14 @@ export const MaterialAndLightingInspector: React.FC<
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <h2 className="text-xs font-semibold text-white">
-                    Malzeme Türü
+                    {t(language, 'Malzeme Türü', 'Material Finish')}
                   </h2>
                   <p className="text-[11px] text-slate-400">
-                    Modelinize uygulamak istediğiniz ana kaplama tarzını seçin
+                    {t(
+                      language,
+                      'Modelinize uygulamak istediğiniz ana kaplama tarzını seçin',
+                      'Select the primary surface finish for your model'
+                    )}
                   </p>
                 </div>
                 <button
@@ -152,7 +165,7 @@ export const MaterialAndLightingInspector: React.FC<
                   className="inline-flex items-center gap-1 text-[11px] text-slate-400 hover:text-white transition-colors cursor-pointer whitespace-nowrap shrink-0"
                 >
                   <RotateCcw className="w-3 h-3" />
-                  <span>Sıfırla</span>
+                  <span>{t(language, 'Sıfırla', 'Reset')}</span>
                 </button>
               </div>
 
@@ -181,17 +194,25 @@ export const MaterialAndLightingInspector: React.FC<
                   />
                   <div className="min-w-0">
                     <div className="text-xs font-semibold truncate">
-                      Dosyanın Orijinal Malzemesi & Dokusu
+                      {t(
+                        language,
+                        'Dosyanın Orijinal Malzemesi & Dokusu',
+                        "Original File Materials & Textures"
+                      )}
                     </div>
                     <div className="text-[11px] text-slate-400 truncate">
-                      Yüklenen dosyanın kendi yüzey renk ve dokularını kullan
+                      {t(
+                        language,
+                        'Yüklenen dosyanın kendi yüzey renk ve dokularını kullan',
+                        'Preserve native colors and textures from imported file'
+                      )}
                     </div>
                   </div>
                 </div>
                 {materialSettings.useOriginalMaterials && (
                   <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-300 shrink-0">
                     <Check className="w-3.5 h-3.5" />
-                    <span>Aktif</span>
+                    <span>{t(language, 'Aktif', 'Active')}</span>
                   </span>
                 )}
               </button>
@@ -202,6 +223,7 @@ export const MaterialAndLightingInspector: React.FC<
                   const isSelected =
                     !materialSettings.useOriginalMaterials &&
                     activeFinishId === finish.id;
+                  const fTr = FINISH_TRANSLATIONS[finish.id];
                   return (
                     <button
                       key={finish.id}
@@ -225,10 +247,10 @@ export const MaterialAndLightingInspector: React.FC<
                         )}
                       </div>
                       <span className="text-xs font-bold text-white tracking-tight">
-                        {finish.name}
+                        {fTr ? fTr.name[language] : finish.name}
                       </span>
                       <span className="text-[10px] text-slate-400 mt-0.5 line-clamp-1 leading-snug">
-                        {finish.description}
+                        {fTr ? fTr.description[language] : finish.description}
                       </span>
                     </button>
                   );
@@ -240,7 +262,7 @@ export const MaterialAndLightingInspector: React.FC<
             <div className="p-4 sm:p-5">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-xs font-semibold text-white">
-                  Renk Seçenekleri
+                  {t(language, 'Renk Seçenekleri', 'Color Options')}
                 </h3>
                 <span className="text-xs font-mono-tabular text-slate-400 uppercase">
                   {materialSettings.color}
@@ -252,6 +274,9 @@ export const MaterialAndLightingInspector: React.FC<
                 {COLOR_SWATCHES.map((sw) => {
                   const isCurrent =
                     materialSettings.color.toLowerCase() === sw.hex.toLowerCase();
+                  const swName = COLOR_SWATCH_TRANSLATIONS[sw.hex]
+                    ? COLOR_SWATCH_TRANSLATIONS[sw.hex][language]
+                    : sw.name;
                   return (
                     <button
                       key={sw.hex}
@@ -262,7 +287,7 @@ export const MaterialAndLightingInspector: React.FC<
                           useOriginalMaterials: false,
                         })
                       }
-                      title={sw.name}
+                      title={swName}
                       className={`group relative flex flex-col items-center gap-1 p-1.5 rounded-lg border transition-all cursor-pointer ${
                         isCurrent
                           ? 'border-amber-400 bg-amber-500/10 scale-105 shadow-sm'
@@ -274,7 +299,7 @@ export const MaterialAndLightingInspector: React.FC<
                         style={{ backgroundColor: sw.hex }}
                       />
                       <span className="text-[9px] text-slate-400 truncate max-w-full">
-                        {sw.name.split(' ')[0]}
+                        {swName.split(' ')[0]}
                       </span>
                     </button>
                   );
@@ -297,10 +322,14 @@ export const MaterialAndLightingInspector: React.FC<
                   />
                   <div>
                     <div className="text-xs font-medium text-white">
-                      Özel Renk Paletinden Seç
+                      {t(language, 'Özel Renk Paletinden Seç', 'Custom Color Picker')}
                     </div>
                     <div className="text-[10px] text-slate-400">
-                      İstediğiniz ton veya Hex kodunu uygulayın
+                      {t(
+                        language,
+                        'İstediğiniz ton veya Hex kodunu uygulayın',
+                        'Pick any custom shade or Hex code'
+                      )}
                     </div>
                   </div>
                 </div>
@@ -315,10 +344,14 @@ export const MaterialAndLightingInspector: React.FC<
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-xs font-semibold text-white">
-                    Yüzey Dokusu
+                    {t(language, 'Yüzey Dokusu', 'Surface Texture')}
                   </h3>
                   <p className="text-[11px] text-slate-400">
-                    Modele mikro yüzey kabartması ekleyin
+                    {t(
+                      language,
+                      'Modele mikro yüzey kabartması ekleyin',
+                      'Apply micro-surface relief pattern to the model'
+                    )}
                   </p>
                 </div>
               </div>
@@ -326,11 +359,26 @@ export const MaterialAndLightingInspector: React.FC<
               <div className="grid grid-cols-2 gap-1.5">
                 {(
                   [
-                    { id: 'none', label: 'Düz (Pürüzsüz)' },
-                    { id: 'brushed_metal', label: 'Fırçalanmış Metal' },
-                    { id: 'micro_sand', label: 'Mikro Kumlama' },
-                    { id: 'carbon_weave', label: 'Karbon Fiber' },
-                    { id: 'print_layers', label: '3B Baskı Katmanı' },
+                    {
+                      id: 'none',
+                      label: t(language, 'Düz (Pürüzsüz)', 'Smooth (None)'),
+                    },
+                    {
+                      id: 'brushed_metal',
+                      label: t(language, 'Fırçalanmış Metal', 'Brushed Metal'),
+                    },
+                    {
+                      id: 'micro_sand',
+                      label: t(language, 'Mikro Kumlama', 'Micro Sandblast'),
+                    },
+                    {
+                      id: 'carbon_weave',
+                      label: t(language, 'Karbon Fiber', 'Carbon Weave'),
+                    },
+                    {
+                      id: 'print_layers',
+                      label: t(language, '3B Baskı Katmanı', '3D Print Layers'),
+                    },
                   ] as { id: SurfacePatternType; label: string }[]
                 ).map((pat) => {
                   const isSelected = materialSettings.surfacePattern === pat.id;
@@ -360,7 +408,13 @@ export const MaterialAndLightingInspector: React.FC<
                 <div className="pt-2 space-y-2.5">
                   <div>
                     <div className="flex justify-between text-xs mb-1">
-                      <span className="text-slate-300">Doku Belirginliği (Kabartma)</span>
+                      <span className="text-slate-300">
+                        {t(
+                          language,
+                          'Doku Belirginliği (Kabartma)',
+                          'Texture Relief Depth (Bump)'
+                        )}
+                      </span>
                       <span className="font-mono-tabular text-amber-400">
                         {(materialSettings.bumpScale * 1000).toFixed(0)} µm
                       </span>
@@ -393,10 +447,14 @@ export const MaterialAndLightingInspector: React.FC<
               >
                 <div className="flex items-center gap-1.5">
                   <Sliders className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Hassas Ayar Kaydırıcıları</span>
+                  <span>
+                    {t(language, 'Hassas Ayar Kaydırıcıları', 'Fine-Tuning Sliders')}
+                  </span>
                 </div>
                 <span className="text-[11px] text-amber-400">
-                  {showAdvancedSliders ? 'Gizle' : 'Göster'}
+                  {showAdvancedSliders
+                    ? t(language, 'Gizle', 'Hide')
+                    : t(language, 'Göster', 'Show')}
                 </span>
               </button>
 
@@ -405,7 +463,13 @@ export const MaterialAndLightingInspector: React.FC<
                   {/* Roughness (Matlık) */}
                   <div>
                     <div className="flex justify-between text-xs mb-1">
-                      <span className="text-slate-300">Matlık ↔ Parlaklık (Roughness)</span>
+                      <span className="text-slate-300">
+                        {t(
+                          language,
+                          'Matlık ↔ Parlaklık (Roughness)',
+                          'Roughness (Matte ↔ Gloss)'
+                        )}
+                      </span>
                       <span className="font-mono-tabular text-amber-400">
                         {Math.round(materialSettings.roughness * 100)}%
                       </span>
@@ -429,7 +493,9 @@ export const MaterialAndLightingInspector: React.FC<
                   {/* Metalness (Metalik Oranı) */}
                   <div>
                     <div className="flex justify-between text-xs mb-1">
-                      <span className="text-slate-300">Metalik Oranı (Metalness)</span>
+                      <span className="text-slate-300">
+                        {t(language, 'Metalik Oranı (Metalness)', 'Metalness')}
+                      </span>
                       <span className="font-mono-tabular text-amber-400">
                         {Math.round(materialSettings.metalness * 100)}%
                       </span>
@@ -453,7 +519,13 @@ export const MaterialAndLightingInspector: React.FC<
                   {/* Transmission (Şeffaflık) */}
                   <div>
                     <div className="flex justify-between text-xs mb-1">
-                      <span className="text-slate-300">Şeffaflık / Cam Oranı (Transmission)</span>
+                      <span className="text-slate-300">
+                        {t(
+                          language,
+                          'Şeffaflık / Cam Oranı (Transmission)',
+                          'Transparency / Glass (Transmission)'
+                        )}
+                      </span>
                       <span className="font-mono-tabular text-amber-400">
                         {Math.round(materialSettings.transmission * 100)}%
                       </span>
@@ -477,7 +549,13 @@ export const MaterialAndLightingInspector: React.FC<
                   {/* Clearcoat (Cila) */}
                   <div>
                     <div className="flex justify-between text-xs mb-1">
-                      <span className="text-slate-300">Vernik / Cila Katmanı (Clearcoat)</span>
+                      <span className="text-slate-300">
+                        {t(
+                          language,
+                          'Vernik / Cila Katmanı (Clearcoat)',
+                          'Clearcoat Layer'
+                        )}
+                      </span>
                       <span className="font-mono-tabular text-slate-300">
                         {Math.round(materialSettings.clearcoat * 100)}%
                       </span>
@@ -504,7 +582,7 @@ export const MaterialAndLightingInspector: React.FC<
             {/* 5. Viewport Geometry Toggles */}
             <div className="p-4 sm:p-5 space-y-2.5">
               <h3 className="text-xs font-semibold text-slate-300">
-                Görünüm Seçenekleri
+                {t(language, 'Görünüm Seçenekleri', 'Display Options')}
               </h3>
               <div className="grid grid-cols-3 gap-1.5">
                 <button
@@ -518,7 +596,7 @@ export const MaterialAndLightingInspector: React.FC<
                       : 'bg-white/[0.02] border border-white/[0.06] text-slate-300 hover:bg-white/[0.05]'
                   }`}
                 >
-                  Tel Kafes
+                  {t(language, 'Tel Kafes', 'Wireframe')}
                 </button>
 
                 <button
@@ -532,7 +610,9 @@ export const MaterialAndLightingInspector: React.FC<
                       : 'bg-white/[0.02] border border-white/[0.06] text-slate-300 hover:bg-white/[0.05]'
                   }`}
                 >
-                  {materialSettings.flatShading ? 'Fasetli' : 'Pürüzsüz'}
+                  {materialSettings.flatShading
+                    ? t(language, 'Fasetli', 'Flat')
+                    : t(language, 'Pürüzsüz', 'Smooth')}
                 </button>
 
                 <button
@@ -546,7 +626,7 @@ export const MaterialAndLightingInspector: React.FC<
                       : 'bg-white/[0.02] border border-white/[0.06] text-slate-300 hover:bg-white/[0.05]'
                   }`}
                 >
-                  Çift Yüzey
+                  {t(language, 'Çift Yüzey', '2-Sided')}
                 </button>
               </div>
             </div>
@@ -558,7 +638,7 @@ export const MaterialAndLightingInspector: React.FC<
             <div className="p-4 sm:p-5">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-xs font-semibold text-white">
-                  Stüdyo Işık Senaryoları
+                  {t(language, 'Stüdyo Işık Senaryoları', 'Studio Lighting Presets')}
                 </h2>
                 <button
                   type="button"
@@ -566,13 +646,14 @@ export const MaterialAndLightingInspector: React.FC<
                   className="inline-flex items-center gap-1 text-[11px] text-slate-400 hover:text-white transition-colors cursor-pointer"
                 >
                   <RotateCcw className="w-3 h-3" />
-                  <span>Sıfırla</span>
+                  <span>{t(language, 'Sıfırla', 'Reset')}</span>
                 </button>
               </div>
 
               <div className="space-y-1.5">
                 {LIGHTING_PRESETS.map((preset) => {
                   const isActive = lightingSettings.presetId === preset.id;
+                  const lTr = LIGHTING_PRESET_TRANSLATIONS[preset.id];
                   return (
                     <button
                       key={preset.id}
@@ -584,9 +665,11 @@ export const MaterialAndLightingInspector: React.FC<
                           : 'bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.06] text-slate-300'
                       }`}
                     >
-                      <div className="text-xs font-semibold">{preset.name}</div>
+                      <div className="text-xs font-semibold">
+                        {lTr ? lTr.name[language] : preset.name}
+                      </div>
                       <div className="text-[11px] text-slate-400 mt-0.5">
-                        {preset.description}
+                        {lTr ? lTr.description[language] : preset.description}
                       </div>
                     </button>
                   );
@@ -598,7 +681,7 @@ export const MaterialAndLightingInspector: React.FC<
             <div className="p-4 sm:p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-semibold text-white">
-                  3 Noktalı Işık Kaynakları
+                  {t(language, '3 Noktalı Işık Kaynakları', '3-Point Light Rig')}
                 </h3>
                 <label className="flex items-center gap-1.5 text-[11px] text-slate-400 cursor-pointer">
                   <input
@@ -609,7 +692,7 @@ export const MaterialAndLightingInspector: React.FC<
                     }
                     className="w-3.5 h-3.5 accent-amber-500 rounded cursor-pointer"
                   />
-                  <span>Işıkları Göster</span>
+                  <span>{t(language, 'Işıkları Göster', 'Show Helpers')}</span>
                 </label>
               </div>
 
@@ -617,9 +700,18 @@ export const MaterialAndLightingInspector: React.FC<
               <div className="grid grid-cols-3 gap-1 p-1 bg-[#0B0D11] rounded-lg border border-white/[0.06]">
                 {(
                   [
-                    { key: 'keyLight', label: 'Ana Işık' },
-                    { key: 'fillLight', label: 'Dolgu Işığı' },
-                    { key: 'rimLight', label: 'Kontur (Rim)' },
+                    {
+                      key: 'keyLight',
+                      label: t(language, 'Ana Işık', 'Key Light'),
+                    },
+                    {
+                      key: 'fillLight',
+                      label: t(language, 'Dolgu Işığı', 'Fill Light'),
+                    },
+                    {
+                      key: 'rimLight',
+                      label: t(language, 'Kontur (Rim)', 'Rim Light'),
+                    },
                   ] as const
                 ).map((tab) => (
                   <button
@@ -651,7 +743,7 @@ export const MaterialAndLightingInspector: React.FC<
                       }
                       className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
                     />
-                    <span>Işık Kaynağı Aktif</span>
+                    <span>{t(language, 'Işık Kaynağı Aktif', 'Light Enabled')}</span>
                   </label>
 
                   <div className="flex items-center gap-2">
@@ -673,7 +765,9 @@ export const MaterialAndLightingInspector: React.FC<
 
                 <div>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-slate-300">Işık Şiddeti</span>
+                    <span className="text-slate-300">
+                      {t(language, 'Işık Şiddeti', 'Light Intensity')}
+                    </span>
                     <span className="font-mono-tabular text-amber-400">
                       {currentLight.intensity.toFixed(2)}
                     </span>
@@ -695,7 +789,9 @@ export const MaterialAndLightingInspector: React.FC<
 
                 <div>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-slate-300">Yatay Açı (Azimuth)</span>
+                    <span className="text-slate-300">
+                      {t(language, 'Yatay Açı (Azimuth)', 'Horizontal Angle (Azimuth)')}
+                    </span>
                     <span className="font-mono-tabular text-slate-300">
                       {currentLight.azimuth}°
                     </span>
@@ -717,7 +813,9 @@ export const MaterialAndLightingInspector: React.FC<
 
                 <div>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-slate-300">Yükseklik Açısı</span>
+                    <span className="text-slate-300">
+                      {t(language, 'Yükseklik Açısı', 'Elevation Angle')}
+                    </span>
                     <span className="font-mono-tabular text-slate-300">
                       {currentLight.elevation}°
                     </span>
@@ -742,13 +840,21 @@ export const MaterialAndLightingInspector: React.FC<
             {/* 3. Studio Environment Reflection & Exposure */}
             <div className="p-4 sm:p-5 space-y-4">
               <h3 className="text-xs font-semibold text-white">
-                Ortam Yansıması ve Pozlama
+                {t(
+                  language,
+                  'Ortam Yansıması ve Pozlama',
+                  'Environment Reflection & Exposure'
+                )}
               </h3>
 
               <div>
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-slate-300">
-                    Stüdyo HDRI Yansıma Gücü
+                    {t(
+                      language,
+                      'Stüdyo HDRI Yansıma Gücü',
+                      'Studio HDRI Reflection Intensity'
+                    )}
                   </span>
                   <span className="font-mono-tabular text-amber-400">
                     {lightingSettings.envIntensity.toFixed(2)}
@@ -771,7 +877,9 @@ export const MaterialAndLightingInspector: React.FC<
 
               <div>
                 <div className="flex justify-between text-xs mb-1">
-                  <span className="text-slate-300">Kamera Pozlama (ACES)</span>
+                  <span className="text-slate-300">
+                    {t(language, 'Kamera Pozlama (ACES)', 'Camera Exposure (ACES)')}
+                  </span>
                   <span className="font-mono-tabular text-slate-300">
                     {lightingSettings.exposure.toFixed(2)} EV
                   </span>
@@ -793,7 +901,7 @@ export const MaterialAndLightingInspector: React.FC<
 
               <div className="flex items-center justify-between pt-2">
                 <span className="text-xs text-slate-300">
-                  Stüdyo Arka Plan Rengi
+                  {t(language, 'Stüdyo Arka Plan Rengi', 'Studio Background Color')}
                 </span>
                 <div className="flex items-center gap-1.5">
                   {[

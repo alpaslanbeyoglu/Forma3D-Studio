@@ -9,7 +9,7 @@ import {
   Palette,
   Sun,
   Layers,
-  Sparkles,
+  Globe,
 } from 'lucide-react';
 import {
   LightingSettings,
@@ -26,6 +26,7 @@ import {
 import { SAMPLE_MODELS } from './utils/sampleModels';
 import { computeGroupStats, load3DFile } from './utils/fileLoader';
 import { createSampleBlendFileBuffer, parseBlendFile } from './utils/blendParser';
+import { Language, t } from './utils/i18n';
 import { Viewport3D } from './components/Viewport3D';
 import { FileAndScenePanel } from './components/FileAndScenePanel';
 import { MaterialAndLightingInspector } from './components/MaterialAndLightingInspector';
@@ -42,6 +43,16 @@ const DEFAULT_TRANSFORM: TransformSettings = {
 type MobileSheetType = 'none' | 'file' | 'material' | 'lighting';
 
 export default function App() {
+  const [language, setLanguage] = useState<Language>(() => {
+    try {
+      const saved = window.localStorage.getItem('forma3d_lang');
+      if (saved === 'en' || saved === 'tr') return saved;
+    } catch {
+      // ignore storage errors
+    }
+    return 'tr';
+  });
+
   const [modelGroup, setModelGroup] = useState<THREE.Group | null>(null);
   const [activeSampleId, setActiveSampleId] = useState<string | null>('turbine_stl');
   const [inspectorTab, setInspectorTab] = useState<'material' | 'lighting'>('material');
@@ -73,6 +84,19 @@ export default function App() {
 
   const captureScreenshotRef = useRef<(() => void) | null>(null);
   const headerFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const toggleLanguage = () => {
+    setLanguage((prev) => {
+      const next: Language = prev === 'tr' ? 'en' : 'tr';
+      try {
+        window.localStorage.setItem('forma3d_lang', next);
+      } catch {
+        // ignore storage errors
+      }
+      document.documentElement.lang = next;
+      return next;
+    });
+  };
 
   const handleSelectSample = useCallback((sampleId: string) => {
     const sample = SAMPLE_MODELS.find((s) => s.id === sampleId);
@@ -125,51 +149,72 @@ export default function App() {
     };
   }, [handleSelectSample]);
 
-  // Handle user uploading a .blend, .blend1, .stl, .obj, or .glb file
-  const handleFileLoad = useCallback(async (file: File) => {
-    setIsLoading(true);
-    setErrorBanner(null);
-    const ext = file.name.split('.').pop()?.toUpperCase() || '';
-    setLoadingMessage(
-      ext.startsWith('BLEND')
-        ? `${file.name} SDNA ikili blokları ve materyalleri çözümleniyor...`
-        : `${file.name} 3B geometri ve materyaller sahneye aktarılıyor...`
-    );
-
-    try {
-      const { group, stats } = await load3DFile(file);
-      setActiveSampleId(null);
-      setModelGroup(group);
-      setModelStats(stats);
-      setTransformSettings(DEFAULT_TRANSFORM);
-      setMaterialSettings((prev) => ({
-        ...prev,
-        useOriginalMaterials: true,
-        presetId: 'original',
-      }));
-    } catch (err) {
-      setErrorBanner(
-        err instanceof Error
-          ? err.message
-          : 'Dosya okunurken bir hata oluştu. Lütfen geçerli bir .blend veya .stl dosyası seçin.'
+  // Handle user uploading a 3D file (.blend, .blend1, .stl, .obj, .glb, .ply, .fbx, .3ds, .dae)
+  const handleFileLoad = useCallback(
+    async (file: File) => {
+      setIsLoading(true);
+      setErrorBanner(null);
+      const ext = file.name.split('.').pop()?.toUpperCase() || '';
+      setLoadingMessage(
+        ext.startsWith('BLEND')
+          ? t(
+              language,
+              `${file.name} SDNA ikili blokları ve materyalleri çözümleniyor...`,
+              `Parsing ${file.name} SDNA binary blocks & materials...`
+            )
+          : t(
+              language,
+              `${file.name} 3B geometri ve materyaller sahneye aktarılıyor...`,
+              `Importing ${file.name} 3D geometry & materials into scene...`
+            )
       );
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+
+      try {
+        const { group, stats } = await load3DFile(file);
+        setActiveSampleId(null);
+        setModelGroup(group);
+        setModelStats(stats);
+        setTransformSettings(DEFAULT_TRANSFORM);
+        setMaterialSettings((prev) => ({
+          ...prev,
+          useOriginalMaterials: true,
+          presetId: 'original',
+        }));
+      } catch (err) {
+        setErrorBanner(
+          err instanceof Error
+            ? err.message
+            : t(
+                language,
+                'Dosya okunurken bir hata oluştu. Lütfen desteklenen bir 3B model dosyası seçin.',
+                'Failed to read file. Please select a supported 3D model file.'
+              )
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [language]
+  );
 
   // Live binary .blend parser verification test triggered from Top Bar
   const handleRunLiveBlendBinaryTest = async () => {
     setIsLoading(true);
     setErrorBanner(null);
-    setLoadingMessage('Gerçek ikili .blend (Blender 4.0 SDNA) dosyası oluşturulup ayrıştırılıyor...');
+    setLoadingMessage(
+      t(
+        language,
+        'Gerçek ikili .blend (Blender 4.0 SDNA) dosyası oluşturulup ayrıştırılıyor...',
+        'Generating and parsing live binary .blend (Blender 4.0 SDNA) file...'
+      )
+    );
     try {
       const geo = new THREE.TorusKnotGeometry(1.15, 0.34, 180, 32, 3, 4);
       const blendBuffer = createSampleBlendFileBuffer(geo, 'Canli_Blender4_SDNA_Mesh');
       const parsed = await parseBlendFile(blendBuffer);
       const stats = computeGroupStats(
         parsed.group,
-        'canli_test_modeli.blend',
+        language === 'en' ? 'live_test_model.blend' : 'canli_test_modeli.blend',
         'BLEND',
         `${(blendBuffer.byteLength / 1024).toFixed(1)} KB`,
         parsed.blenderVersion
@@ -185,7 +230,9 @@ export default function App() {
       }));
     } catch (err) {
       setErrorBanner(
-        err instanceof Error ? err.message : '.blend testi sırasında hata oluştu.'
+        err instanceof Error
+          ? err.message
+          : t(language, '.blend testi sırasında hata oluştu.', 'Error during .blend test.')
       );
     } finally {
       setIsLoading(false);
@@ -209,7 +256,6 @@ export default function App() {
 
   const handleUpdateMaterial = (partial: Partial<MaterialSettings>) => {
     setMaterialSettings((prev) => {
-      // Only keep useOriginalMaterials if explicitly set to true or if only viewport display flags (wireframe, flatShading, doubleSided) changed
       const keys = Object.keys(partial);
       const isViewportFlagOnly = keys.every((k) =>
         ['wireframe', 'flatShading', 'doubleSided'].includes(k)
@@ -268,7 +314,7 @@ export default function App() {
   return (
     <div className="app-viewport-shell flex flex-col overflow-hidden bg-[#0B0D11] text-[#F1F5F9]">
       {/* Top Bar: Responsive header with Wordmark, Desktop Nav, and Action Buttons */}
-      <header className="h-13 sm:h-14 shrink-0 flex items-center justify-between gap-2 px-3 sm:px-6 bg-[#12151C] border-b border-white/[0.07] z-30">
+      <header className="h-13 sm:h-14 shrink-0 flex items-center justify-between gap-2 px-2.5 sm:px-6 bg-[#12151C] border-b border-white/[0.07] z-30">
         {/* Zone 1: Single text element wordmark */}
         <a
           href="#studio"
@@ -288,14 +334,14 @@ export default function App() {
             onClick={() => handleSelectSample('turbine_stl')}
             className="hover:text-white hover:underline underline-offset-4 transition-colors cursor-pointer whitespace-nowrap"
           >
-            CAD .STL Örneği
+            {t(language, 'CAD .STL Örneği', 'CAD .STL Sample')}
           </button>
           <button
             type="button"
             onClick={handleRunLiveBlendBinaryTest}
             className="hover:text-white hover:underline underline-offset-4 transition-colors cursor-pointer whitespace-nowrap"
           >
-            Canlı .BLEND Ayrıştırıcı
+            {t(language, 'Canlı .BLEND Ayrıştırıcı', 'Live .BLEND Parser')}
           </button>
           <button
             type="button"
@@ -304,7 +350,7 @@ export default function App() {
               inspectorTab === 'material' ? 'text-amber-400 font-semibold' : ''
             }`}
           >
-            Malzeme Laboratuvarı
+            {t(language, 'Malzeme & Renk', 'Material & Color')}
           </button>
           <button
             type="button"
@@ -313,12 +359,22 @@ export default function App() {
               inspectorTab === 'lighting' ? 'text-amber-400 font-semibold' : ''
             }`}
           >
-            Işık Stüdyosu
+            {t(language, 'Işık Stüdyosu', 'Lighting Studio')}
           </button>
         </nav>
 
-        {/* Zone 3: Primary Actions */}
+        {/* Zone 3: Language Switcher & Primary Actions */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={toggleLanguage}
+            className="min-h-[36px] inline-flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] border border-white/10 text-[11px] font-semibold text-slate-200 transition-colors cursor-pointer whitespace-nowrap shrink-0"
+            title={t(language, 'Switch to English', 'Türkçe diline geç')}
+          >
+            <Globe className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span>{language === 'tr' ? 'TR · EN' : 'EN · TR'}</span>
+          </button>
+
           <input
             ref={headerFileInputRef}
             type="file"
@@ -334,27 +390,37 @@ export default function App() {
           <button
             type="button"
             onClick={() => headerFileInputRef.current?.click()}
-            className="min-h-[38px] inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-xs font-semibold text-amber-300 transition-colors cursor-pointer whitespace-nowrap shrink-0"
-            title=".blend, .blend1, .stl, .obj veya .glb Dosyası Yükle"
+            className="min-h-[36px] inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-xs font-semibold text-amber-300 transition-colors cursor-pointer whitespace-nowrap shrink-0"
+            title={t(
+              language,
+              '.blend, .stl, .obj, .glb, .ply, .fbx, .3ds veya .dae Yükle',
+              'Import .blend, .stl, .obj, .glb, .ply, .fbx, .3ds, or .dae'
+            )}
           >
             <FileUp className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <span>Model Yükle</span>
+            <span>{t(language, 'Model Yükle', 'Import')}</span>
           </button>
 
           <button
             type="button"
             onClick={() => captureScreenshotRef.current?.()}
-            className="min-h-[38px] inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-xs font-medium text-slate-200 transition-colors cursor-pointer whitespace-nowrap shrink-0"
-            title="Sahnenin PNG Render Görüntüsünü İndir"
+            className="min-h-[36px] inline-flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-xs font-medium text-slate-200 transition-colors cursor-pointer whitespace-nowrap shrink-0"
+            title={t(
+              language,
+              'Sahnenin PNG Render Görüntüsünü İndir',
+              'Capture PNG Render Snapshot'
+            )}
           >
             <Camera className="w-3.5 h-3.5 text-slate-300 shrink-0" />
-            <span className="hidden sm:inline">Render Al</span>
+            <span className="hidden sm:inline">
+              {t(language, 'Render Al', 'Snapshot')}
+            </span>
           </button>
 
           <button
             type="button"
             onClick={() => setIsExportModalOpen(true)}
-            className="min-h-[38px] inline-flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap shrink-0 shadow-sm"
+            className="min-h-[36px] inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap shrink-0 shadow-sm"
           >
             <Download className="w-3.5 h-3.5 shrink-0" />
             <span>.USDZ</span>
@@ -364,9 +430,10 @@ export default function App() {
 
       {/* Main Studio Workspace: 3 Columns on Desktop, Full-Screen Viewport with Bottom Navigation on Mobile */}
       <div className="flex-1 flex min-h-0 relative overflow-hidden">
-        {/* Left Desktop Sidebar: File Upload (.blend / .stl), Sample Models, Telemetry & Sub-meshes */}
+        {/* Left Desktop Sidebar: File Upload, Sample Models, Telemetry & Sub-meshes */}
         <div className="hidden lg:flex shrink-0 h-full">
           <FileAndScenePanel
+            language={language}
             modelStats={modelStats}
             activeSampleId={activeSampleId}
             transformSettings={transformSettings}
@@ -399,6 +466,7 @@ export default function App() {
           )}
 
           <Viewport3D
+            language={language}
             modelGroup={modelGroup}
             materialSettings={materialSettings}
             lightingSettings={lightingSettings}
@@ -412,9 +480,10 @@ export default function App() {
           />
         </main>
 
-        {/* Right Desktop Sidebar: PBR Material Studio & 3-Point Lighting Inspector */}
+        {/* Right Desktop Sidebar: Simplified Material Studio & 3-Point Lighting Inspector */}
         <div className="hidden lg:flex shrink-0 h-full">
           <MaterialAndLightingInspector
+            language={language}
             activeTab={inspectorTab}
             onTabChange={setInspectorTab}
             materialSettings={materialSettings}
@@ -448,6 +517,7 @@ export default function App() {
               <div className="flex-1 overflow-hidden">
                 {mobileSheet === 'file' ? (
                   <FileAndScenePanel
+                    language={language}
                     modelStats={modelStats}
                     activeSampleId={activeSampleId}
                     transformSettings={transformSettings}
@@ -466,6 +536,7 @@ export default function App() {
                   />
                 ) : (
                   <MaterialAndLightingInspector
+                    language={language}
                     activeTab={inspectorTab}
                     onTabChange={setInspectorTab}
                     materialSettings={materialSettings}
@@ -493,7 +564,7 @@ export default function App() {
           className="min-h-[44px] flex flex-col items-center justify-center gap-1 py-1 text-[11px] font-semibold text-amber-400 hover:text-amber-300 transition-colors cursor-pointer whitespace-nowrap"
         >
           <FileUp className="w-4 h-4 shrink-0" />
-          <span>Model Yükle</span>
+          <span>{t(language, 'Model Yükle', 'Import')}</span>
         </button>
 
         <button
@@ -504,7 +575,7 @@ export default function App() {
           }`}
         >
           <Layers className="w-4 h-4 shrink-0" />
-          <span>Sahne</span>
+          <span>{t(language, 'Sahne', 'Scene')}</span>
         </button>
 
         <button
@@ -517,7 +588,7 @@ export default function App() {
           }`}
         >
           <Palette className="w-4 h-4 shrink-0" />
-          <span>Malzeme</span>
+          <span>{t(language, 'Malzeme', 'Material')}</span>
         </button>
 
         <button
@@ -530,7 +601,7 @@ export default function App() {
           }`}
         >
           <Sun className="w-4 h-4 shrink-0" />
-          <span>Işık</span>
+          <span>{t(language, 'Işık', 'Lighting')}</span>
         </button>
 
         <button
@@ -545,6 +616,7 @@ export default function App() {
 
       {/* USDZ Export Configuration Modal */}
       <UsdzExportModal
+        language={language}
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
         modelGroup={modelGroup}
