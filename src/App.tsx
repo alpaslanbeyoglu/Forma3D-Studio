@@ -323,7 +323,7 @@ export default function App() {
   return (
     <div className="app-viewport-shell flex flex-col overflow-hidden bg-[#0B0D11] text-[#F1F5F9]">
       {/* Top Bar: Responsive header with Wordmark, Desktop Nav, and Action Buttons */}
-      <header className="ios-safe-top min-h-[50px] sm:min-h-[56px] shrink-0 flex items-center justify-between gap-2 px-3 sm:px-6 bg-[#12151C] border-b border-white/[0.07] z-30">
+      <header className="ios-safe-top min-h-[50px] sm:min-h-[56px] pb-1.5 sm:pb-0 shrink-0 flex items-center justify-between gap-2 px-3 sm:px-6 bg-[#12151C] border-b border-white/[0.07] z-30">
         {/* Zone 1: Single text element wordmark */}
         <a
           href="#studio"
@@ -455,7 +455,7 @@ export default function App() {
         </div>
 
         {/* Center Full 3D WebGL Viewport (Stays live and visible in top half when mobile panel is open!) */}
-        <main className="flex-1 relative min-w-0 min-h-[180px] h-full">
+        <main className="flex-1 relative min-w-0 min-h-0 h-full">
           {errorBanner && (
             <div className="absolute top-14 sm:top-16 left-1/2 -translate-x-1/2 z-30 max-w-lg w-full px-4">
               <div className="flex items-start justify-between gap-3 p-3.5 rounded-xl bg-red-950/90 backdrop-blur-md border border-red-500/40 text-red-200 text-xs shadow-xl">
@@ -509,8 +509,8 @@ export default function App() {
         {/* Mobile Split-Screen Bottom Studio Panel (Leaves 3D Model visible in top half!) */}
         {mobileSheet !== 'none' && (
           <div
-            className={`lg:hidden w-full shrink-0 bg-[#12151C] rounded-t-2xl border-t border-white/15 shadow-2xl flex flex-col overflow-hidden z-20 transition-[height] duration-200 ${
-              isMobileSheetExpanded ? 'h-[68dvh]' : 'h-[45dvh]'
+            className={`lg:hidden w-full shrink-0 bg-[#12151C] rounded-t-2xl border-t border-white/15 shadow-2xl flex flex-col overflow-hidden z-20 transition-all duration-200 ${
+              isMobileSheetExpanded ? 'h-[62%] max-h-[62%]' : 'h-[44%] max-h-[44%]'
             }`}
           >
             {/* Interactive Expand / Collapse Handle Bar */}

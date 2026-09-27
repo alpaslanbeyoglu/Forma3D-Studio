@@ -33,7 +33,7 @@ jobs:
 
       - name: Install dependencies and build production bundle
         run: |
-          npm install
+          npm install --legacy-peer-deps || npm install
           npm run build
           cp 404.html dist/404.html || true
           touch dist/.nojekyll

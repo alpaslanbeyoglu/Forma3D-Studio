@@ -2,7 +2,13 @@
 <html lang="tr" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#12151C" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>Forma3D Studio — BLEND & STL'den USDZ'ye 3B Atölye</title>
     <meta name="description" content=".blend ve .stl dosyalarını gerçek zamanlı 3B sahnede inceleyin, fiziksel PBR malzeme ve üç noktalı stüdyo ışıklarını özelleştirip tek tıkla Apple AR uyumlu .usdz formatında dışa aktarın." />
     <meta property="og:title" content="Forma3D Studio — BLEND & STL'den USDZ'ye 3B Atölye" />
@@ -12,7 +18,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Syne:wght@600;700&display=swap" rel="stylesheet">
-    <style>html,body{color:#f1f5f9;background-color:#0b0d11;width:100%;height:100%;margin:0;padding:0}#initial-loader{z-index:9999;background-color:#0b0d11;flex-direction:column;justify-content:center;align-items:center;font-family:system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;display:flex;position:fixed;inset:0}.loader-spinner{border:3px solid #f59e0b33;border-top-color:#f59e0b;border-radius:50%;width:32px;height:32px;margin-bottom:16px;animation:.8s linear infinite spin}@keyframes spin{to{transform:rotate(360deg)}}</style>
+    <style>html,body{overscroll-behavior:none;-webkit-text-size-adjust:100%;color:#f1f5f9;background-color:#0b0d11;width:100%;height:100%;margin:0;padding:0;overflow:hidden}#initial-loader{z-index:9999;background-color:#0b0d11;flex-direction:column;justify-content:center;align-items:center;font-family:system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;display:flex;position:fixed;inset:0}.loader-spinner{border:3px solid #f59e0b33;border-top-color:#f59e0b;border-radius:50%;width:32px;height:32px;margin-bottom:16px;animation:.8s linear infinite spin}@keyframes spin{to{transform:rotate(360deg)}}</style>
     <script type="module" crossorigin src="./assets/app.js"></script>
     <link rel="stylesheet" crossorigin href="./assets/app.css">
   </head>
@@ -20,12 +26,19 @@
     <div id="root">
       <div id="initial-loader">
         <div class="loader-spinner"></div>
-        <div style="font-size: 14px; font-weight: 600; color: #E2E8F0; letter-spacing: 0.5px;">Forma3D Studio</div>
+        <div style="font-size: 14px; font-weight: 600; color: #E2E8F0; letter-spacing: 0.5px;">Forma3D</div>
         <div style="font-size: 11px; color: #64748B; margin-top: 4px;">3B Sahne Yükleniyor...</div>
       </div>
     </div>
     <script>
       (function () {
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function (regs) {
+            for (var i = 0; i < regs.length; i++) {
+              regs[i].unregister();
+            }
+          });
+        }
         var scripts = document.getElementsByTagName('script');
         var isViteDev = false;
         var isBuiltDist = false;
@@ -37,14 +50,15 @@
           }
         }
         if (!isViteDev && !isBuiltDist) {
+          var v = '20260927_v10';
           var link = document.createElement('link');
           link.rel = 'stylesheet';
-          link.href = './dist/assets/app.css';
+          link.href = './bundle/assets/app.css?v=' + v;
           document.head.appendChild(link);
 
           var script = document.createElement('script');
           script.type = 'module';
-          script.src = './dist/assets/app.js';
+          script.src = './bundle/assets/app.js?v=' + v;
           document.body.appendChild(script);
         }
       })();
