@@ -12,39 +12,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Syne:wght@600;700&display=swap" rel="stylesheet">
-    <style>
-      html, body {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        height: 100%;
-        background-color: #0B0D11;
-        color: #F1F5F9;
-      }
-      #initial-loader {
-        position: fixed;
-        inset: 0;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        background-color: #0B0D11;
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        z-index: 9999;
-      }
-      .loader-spinner {
-        width: 32px;
-        height: 32px;
-        border: 3px solid rgba(245, 158, 11, 0.2);
-        border-top-color: #F59E0B;
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-        margin-bottom: 16px;
-      }
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-    </style>
+    <style>html,body{color:#f1f5f9;background-color:#0b0d11;width:100%;height:100%;margin:0;padding:0}#initial-loader{z-index:9999;background-color:#0b0d11;flex-direction:column;justify-content:center;align-items:center;font-family:system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;display:flex;position:fixed;inset:0}.loader-spinner{border:3px solid #f59e0b33;border-top-color:#f59e0b;border-radius:50%;width:32px;height:32px;margin-bottom:16px;animation:.8s linear infinite spin}@keyframes spin{to{transform:rotate(360deg)}}</style>
+    <script type="module" crossorigin src="./assets/app.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/app.css">
   </head>
   <body class="bg-[#0B0D11] text-[#F1F5F9] antialiased selection:bg-amber-500/30 selection:text-amber-200 overflow-hidden">
     <div id="root">
@@ -54,7 +24,6 @@
         <div style="font-size: 11px; color: #64748B; margin-top: 4px;">3B Sahne Yükleniyor...</div>
       </div>
     </div>
-    <script type="module" src="./src/main.tsx"></script>
     <script>
       (function () {
         var scripts = document.getElementsByTagName('script');
@@ -70,12 +39,12 @@
         if (!isViteDev && !isBuiltDist) {
           var link = document.createElement('link');
           link.rel = 'stylesheet';
-          link.href = './bundle/assets/app.css';
+          link.href = './dist/assets/app.css';
           document.head.appendChild(link);
 
           var script = document.createElement('script');
           script.type = 'module';
-          script.src = './bundle/assets/app.js';
+          script.src = './dist/assets/app.js';
           document.body.appendChild(script);
         }
       })();
