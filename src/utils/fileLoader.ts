@@ -84,7 +84,29 @@ export async function load3DFile(
   const buffer = await file.arrayBuffer();
   const fileSizeStr = formatBytes(file.size);
 
-  if (ext === 'blend') {
+  // Detect .blend / .blend1 / .blend2 or Blender binary/compressed magic bytes
+  const headerBytes = new Uint8Array(buffer, 0, Math.min(buffer.byteLength, 16));
+  const isBlenderAscii =
+    headerBytes.length >= 7 &&
+    headerBytes[0] === 0x42 && // B
+    headerBytes[1] === 0x4c && // L
+    headerBytes[2] === 0x45 && // E
+    headerBytes[3] === 0x4e && // N
+    headerBytes[4] === 0x44 && // D
+    headerBytes[5] === 0x45 && // E
+    headerBytes[6] === 0x52; // R
+  const isZstdMagic =
+    headerBytes.length >= 4 &&
+    headerBytes[0] === 0x28 &&
+    headerBytes[1] === 0xb5 &&
+    headerBytes[2] === 0x2f &&
+    headerBytes[3] === 0xfd;
+  const isGzipMagic =
+    headerBytes.length >= 2 &&
+    headerBytes[0] === 0x1f &&
+    headerBytes[1] === 0x8b;
+
+  if (/^blend\d*$/.test(ext) || isBlenderAscii || isZstdMagic || isGzipMagic) {
     const res = await parseBlendFile(buffer);
     const stats = computeGroupStats(
       res.group,

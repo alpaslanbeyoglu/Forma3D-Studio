@@ -70,14 +70,14 @@ export const FileAndScenePanel: React.FC<FileAndScenePanelProps> = ({
             Model İçe Aktar
           </h2>
           <span className="text-xs text-slate-400">
-            .blend · .stl · .obj · .glb
+            .blend · .blend1 · .stl · .obj · .glb
           </span>
         </div>
 
+        {/* Do not set restrictive accept attribute so iOS/iPhone Files app enables .blend and .blend1 files */}
         <input
           ref={fileInputRef}
           type="file"
-          accept=".blend,.stl,.obj,.glb,.gltf"
           onChange={handleFileChange}
           className="hidden"
         />

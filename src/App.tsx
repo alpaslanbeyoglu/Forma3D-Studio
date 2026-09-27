@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import {
   Camera,
   Download,
+  FileUp,
   AlertCircle,
   X,
   Palette,
@@ -71,6 +72,7 @@ export default function App() {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const captureScreenshotRef = useRef<(() => void) | null>(null);
+  const headerFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleSelectSample = useCallback((sampleId: string) => {
     const sample = SAMPLE_MODELS.find((s) => s.id === sampleId);
@@ -102,13 +104,13 @@ export default function App() {
     handleSelectSample('turbine_stl');
   }, [handleSelectSample]);
 
-  // Handle user uploading a .blend, .stl, .obj, or .glb file
+  // Handle user uploading a .blend, .blend1, .stl, .obj, or .glb file
   const handleFileLoad = useCallback(async (file: File) => {
     setIsLoading(true);
     setErrorBanner(null);
     const ext = file.name.split('.').pop()?.toUpperCase() || '';
     setLoadingMessage(
-      ext === 'BLEND'
+      ext.startsWith('BLEND')
         ? `${file.name} SDNA ikili blokları ve materyalleri çözümleniyor...`
         : `${file.name} 3B geometri ve materyaller sahneye aktarılıyor...`
     );
@@ -301,6 +303,28 @@ export default function App() {
 
         {/* Zone 3: Primary Actions */}
         <div className="flex items-center gap-2">
+          <input
+            ref={headerFileInputRef}
+            type="file"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) {
+                handleFileLoad(f);
+                e.target.value = '';
+              }
+            }}
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => headerFileInputRef.current?.click()}
+            className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 text-xs font-medium text-white transition-colors cursor-pointer whitespace-nowrap"
+            title=".blend, .blend1, .stl, .obj veya .glb Dosyası Yükle"
+          >
+            <FileUp className="w-3.5 h-3.5 text-amber-400" />
+            <span>Model Yükle</span>
+          </button>
+
           <button
             type="button"
             onClick={() => captureScreenshotRef.current?.()}

@@ -604,13 +604,27 @@ export async function parseBlendFile(arrayBuffer: ArrayBuffer): Promise<BlendPar
     return slots;
   };
 
-  // Build a map of Object pointers -> Object transformations, names & object-level materials
+  // Basis change matrices between Blender Z-up (x, y, z) and Three.js Y-up (x, z, -y)
+  const blenderToThreeBasis = new THREE.Matrix4().set(
+    1, 0, 0, 0,
+    0, 0, 1, 0,
+    0, -1, 0, 0,
+    0, 0, 0, 1
+  );
+  const threeToBlenderBasis = new THREE.Matrix4().set(
+    1, 0, 0, 0,
+    0, 0, -1, 0,
+    0, 1, 0, 0,
+    0, 0, 0, 1
+  );
+
+  // Build a map of Mesh pointer -> array of Object instances (transformations, names & object-level materials)
   interface ObjectMeta {
     name: string;
     matrix?: THREE.Matrix4;
     materials: THREE.MeshPhysicalMaterial[];
   }
-  const meshAddrToObjectMeta = new Map<string, ObjectMeta>();
+  const meshAddrToObjectMetas = new Map<string, ObjectMeta[]>();
 
   for (const b of blocks) {
     const isObject =
@@ -635,24 +649,90 @@ export async function parseBlendFile(arrayBuffer: ArrayBuffer): Promise<BlendPar
       if (dataField) {
         const dataPtr = readPointerAddr(view, oOff + dataField.offset, ptrSize, littleEndian);
         if (dataPtr !== '0') {
-          let objMat: THREE.Matrix4 | undefined;
+          let threeMat: THREE.Matrix4 | undefined;
+
+          // 1. Try reading 4x4 obmat (column-major in Blender)
           const obmatField = objectStruct.fieldMap.get('obmat');
           if (obmatField && oOff + obmatField.offset + 64 <= bytes.length) {
-            const m = new THREE.Matrix4();
             const elements: number[] = [];
+            let allFinite = true;
             for (let e = 0; e < 16; e++) {
-              elements.push(
-                view.getFloat32(oOff + obmatField.offset + e * 4, littleEndian)
-              );
+              const val = view.getFloat32(oOff + obmatField.offset + e * 4, littleEndian);
+              if (!isFinite(val) || Math.abs(val) > 1e7) {
+                allFinite = false;
+                break;
+              }
+              elements.push(val);
             }
-            m.fromArray(elements);
-            objMat = m;
+            if (allFinite) {
+              const mBlender = new THREE.Matrix4().fromArray(elements);
+              const det = mBlender.determinant();
+              if (Math.abs(det) > 1e-6 && Math.abs(elements[15] - 1) < 0.05) {
+                threeMat = new THREE.Matrix4()
+                  .multiplyMatrices(blenderToThreeBasis, mBlender)
+                  .multiply(threeToBlenderBasis);
+              }
+            }
           }
-          meshAddrToObjectMeta.set(dataPtr, {
+
+          // 2. Fallback: construct transform from loc, rot, size fields in Object struct
+          if (!threeMat) {
+            const locField = objectStruct.fieldMap.get('loc');
+            const rotField = objectStruct.fieldMap.get('rot');
+            const sizeField = objectStruct.fieldMap.get('size');
+            if (
+              locField &&
+              oOff + locField.offset + 12 <= bytes.length
+            ) {
+              const lx = view.getFloat32(oOff + locField.offset, littleEndian);
+              const ly = view.getFloat32(oOff + locField.offset + 4, littleEndian);
+              const lz = view.getFloat32(oOff + locField.offset + 8, littleEndian);
+
+              let rx = 0, ry = 0, rz = 0;
+              if (rotField && oOff + rotField.offset + 12 <= bytes.length) {
+                rx = view.getFloat32(oOff + rotField.offset, littleEndian);
+                ry = view.getFloat32(oOff + rotField.offset + 4, littleEndian);
+                rz = view.getFloat32(oOff + rotField.offset + 8, littleEndian);
+              }
+
+              let sx = 1, sy = 1, sz = 1;
+              if (sizeField && oOff + sizeField.offset + 12 <= bytes.length) {
+                const rsx = view.getFloat32(oOff + sizeField.offset, littleEndian);
+                const rsy = view.getFloat32(oOff + sizeField.offset + 4, littleEndian);
+                const rsz = view.getFloat32(oOff + sizeField.offset + 8, littleEndian);
+                if (isFinite(rsx) && Math.abs(rsx) > 1e-5) sx = rsx;
+                if (isFinite(rsy) && Math.abs(rsy) > 1e-5) sy = rsy;
+                if (isFinite(rsz) && Math.abs(rsz) > 1e-5) sz = rsz;
+              }
+
+              if (
+                isFinite(lx) &&
+                isFinite(ly) &&
+                isFinite(lz) &&
+                isFinite(rx) &&
+                isFinite(ry) &&
+                isFinite(rz)
+              ) {
+                const posB = new THREE.Vector3(lx, ly, lz);
+                const quatB = new THREE.Quaternion().setFromEuler(
+                  new THREE.Euler(rx, ry, rz, 'XYZ')
+                );
+                const scaleB = new THREE.Vector3(sx, sy, sz);
+                const mBlender = new THREE.Matrix4().compose(posB, quatB, scaleB);
+                threeMat = new THREE.Matrix4()
+                  .multiplyMatrices(blenderToThreeBasis, mBlender)
+                  .multiply(threeToBlenderBasis);
+              }
+            }
+          }
+
+          const list = meshAddrToObjectMetas.get(dataPtr) || [];
+          list.push({
             name: objName || 'Nesne',
-            matrix: objMat,
+            matrix: threeMat,
             materials: objMats,
           });
+          meshAddrToObjectMetas.set(dataPtr, list);
         }
       }
     }
@@ -684,13 +764,14 @@ export async function parseBlendFile(arrayBuffer: ArrayBuffer): Promise<BlendPar
 
     const mOff = block.dataOffset;
 
-    // Determine mesh name (from Object metadata if attached, or from ID name)
-    const objMeta = addrMap.has(block.oldAddr)
-      ? meshAddrToObjectMeta.get(block.oldAddr)
+    // Determine object instances referencing this mesh
+    const objMetas = addrMap.has(block.oldAddr)
+      ? meshAddrToObjectMetas.get(block.oldAddr)
       : undefined;
+    const primaryObjMeta = objMetas && objMetas.length > 0 ? objMetas[0] : undefined;
 
-    let meshName = objMeta?.name || `Mesh_${meshNames.length + 1}`;
-    if (!objMeta?.name) {
+    let meshName = primaryObjMeta?.name || `Mesh_${meshNames.length + 1}`;
+    if (!primaryObjMeta?.name) {
       const nameField = idStruct?.fieldMap.get('name');
       if (nameField && mOff + nameField.offset + 2 < bytes.length) {
         const rawIdName = readCString(bytes, mOff + nameField.offset, nameField.byteSize);
@@ -759,38 +840,54 @@ export async function parseBlendFile(arrayBuffer: ArrayBuffer): Promise<BlendPar
       }
     }
 
-    // Strategy B: CustomData layers (.vert_positions or CD_MVERT / CD_PROP_FLOAT3)
+    // Strategy B: CustomData layers (supports both Blender 4.0+ vert_data/corner_data/face_data and legacy vdata/ldata/pdata)
     const findCustomDataLayerBlock = (
-      cdataFieldName: string,
+      cdataFieldNames: string[],
       targetLayerNames: string[],
       expectedByteSize: number
     ): BlendBlock | null => {
       if (!meshStruct || !cdataStruct || !cdataLayerStruct) return null;
-      const cdField = meshStruct.fieldMap.get(cdataFieldName);
       const layersField = cdataStruct.fieldMap.get('layers');
       const totlayerField = cdataStruct.fieldMap.get('totlayer');
       const layerNameField = cdataLayerStruct.fieldMap.get('name');
       const layerDataField = cdataLayerStruct.fieldMap.get('data');
 
-      if (!cdField || !layersField || !totlayerField || !layerNameField || !layerDataField) {
+      if (!layersField || !totlayerField || !layerNameField || !layerDataField) {
         return null;
       }
 
-      const cdBase = mOff + cdField.offset;
-      const layersPtr = readPointerAddr(view, cdBase + layersField.offset, ptrSize, littleEndian);
-      const totlayer = view.getInt32(cdBase + totlayerField.offset, littleEndian);
-      const layersBlock = addrMap.get(layersPtr);
-      if (!layersBlock || totlayer <= 0) return null;
+      for (const cdataFieldName of cdataFieldNames) {
+        const cdField = meshStruct.fieldMap.get(cdataFieldName);
+        if (!cdField) continue;
 
-      for (let l = 0; l < totlayer; l++) {
-        const lBase = layersBlock.dataOffset + l * cdataLayerStruct.byteSize;
-        if (lBase + cdataLayerStruct.byteSize > layersBlock.dataOffset + layersBlock.size) break;
-        const lName = readCString(bytes, lBase + layerNameField.offset, layerNameField.byteSize);
-        const dPtr = readPointerAddr(view, lBase + layerDataField.offset, ptrSize, littleEndian);
-        const dBlock = addrMap.get(dPtr);
-        if (dBlock) {
-          if (targetLayerNames.includes(lName) || (expectedByteSize > 0 && dBlock.size === expectedByteSize)) {
+        const cdBase = mOff + cdField.offset;
+        const layersPtr = readPointerAddr(view, cdBase + layersField.offset, ptrSize, littleEndian);
+        const totlayer = view.getInt32(cdBase + totlayerField.offset, littleEndian);
+        const layersBlock = addrMap.get(layersPtr);
+        if (!layersBlock || totlayer <= 0) continue;
+
+        // First pass: exact layer name match
+        for (let l = 0; l < totlayer; l++) {
+          const lBase = layersBlock.dataOffset + l * cdataLayerStruct.byteSize;
+          if (lBase + cdataLayerStruct.byteSize > layersBlock.dataOffset + layersBlock.size) break;
+          const lName = readCString(bytes, lBase + layerNameField.offset, layerNameField.byteSize);
+          const dPtr = readPointerAddr(view, lBase + layerDataField.offset, ptrSize, littleEndian);
+          const dBlock = addrMap.get(dPtr);
+          if (dBlock && targetLayerNames.includes(lName)) {
             return dBlock;
+          }
+        }
+
+        // Second pass: size match within this specific CustomData domain
+        if (expectedByteSize > 0) {
+          for (let l = 0; l < totlayer; l++) {
+            const lBase = layersBlock.dataOffset + l * cdataLayerStruct.byteSize;
+            if (lBase + cdataLayerStruct.byteSize > layersBlock.dataOffset + layersBlock.size) break;
+            const dPtr = readPointerAddr(view, lBase + layerDataField.offset, ptrSize, littleEndian);
+            const dBlock = addrMap.get(dPtr);
+            if (dBlock && dBlock.size === expectedByteSize) {
+              return dBlock;
+            }
           }
         }
       }
@@ -798,24 +895,33 @@ export async function parseBlendFile(arrayBuffer: ArrayBuffer): Promise<BlendPar
     };
 
     if (!positionsFloat) {
-      let posBlock = findCustomDataLayerBlock('vdata', ['.vert_positions', 'position', 'co'], totvert * 12);
+      let posBlock = findCustomDataLayerBlock(
+        ['vert_data', 'vdata'],
+        ['position', '.vert_positions', 'co'],
+        totvert * 12
+      );
       if (!posBlock) {
         // Fallback: search child DATA blocks for float3 coordinates
         if (totvert > 0) {
           posBlock =
-            childDataBlocks.find(
-              (db) => db.size === totvert * 12 || db.size === totvert * 16
-            ) || null;
+            childDataBlocks.find((db) => {
+              if (db.size !== totvert * 12 && db.size !== totvert * 16) return false;
+              const checkFloats = Math.min(totvert * 3, 24);
+              for (let k = 0; k < checkFloats; k++) {
+                const val = view.getFloat32(db.dataOffset + k * 4, littleEndian);
+                if (!isFinite(val) || Math.abs(val) > 1e6) return false;
+              }
+              return true;
+            }) || null;
         } else {
           // Detect totvert from a suitable child DATA block
           for (const db of childDataBlocks) {
             if (db.size >= 36 && db.size % 12 === 0) {
               const candidateCount = db.size / 12;
-              // Validate if values look like valid bounding coordinates (not huge NaN/inf)
               let ok = true;
               for (let k = 0; k < Math.min(candidateCount, 12); k++) {
                 const val = view.getFloat32(db.dataOffset + k * 4, littleEndian);
-                if (!isFinite(val) || Math.abs(val) > 1e7) {
+                if (!isFinite(val) || Math.abs(val) > 1e6) {
                   ok = false;
                   break;
                 }
@@ -832,7 +938,7 @@ export async function parseBlendFile(arrayBuffer: ArrayBuffer): Promise<BlendPar
 
       if (posBlock && totvert > 0 && posBlock.size >= totvert * 12) {
         positionsFloat = new Float32Array(totvert * 3);
-        const stride = posBlock.size >= totvert * 16 ? 16 : 12;
+        const stride = posBlock.size >= totvert * 16 && posBlock.size % 16 === 0 && posBlock.size !== totvert * 12 ? 16 : 12;
         for (let v = 0; v < totvert; v++) {
           const vBase = posBlock.dataOffset + v * stride;
           const bx = view.getFloat32(vBase, littleEndian);
@@ -850,13 +956,19 @@ export async function parseBlendFile(arrayBuffer: ArrayBuffer): Promise<BlendPar
     // 2. Extract Polygon & Loop Indices
     const triangleIndices: number[] = [];
 
-    // Strategy A: Modern Blender 3.6 / 4.x (.corner_verts + poly_offset_indices)
+    // Strategy A: Modern Blender 3.6 / 4.x (.corner_verts + face_offset_indices / poly_offset_indices)
     if (totpoly > 0 && totloop > 0) {
-      let cornerVertsBlock = findCustomDataLayerBlock('ldata', ['.corner_verts', 'corner_vert'], totloop * 4);
+      let cornerVertsBlock = findCustomDataLayerBlock(
+        ['corner_data', 'ldata'],
+        ['.corner_verts', 'corner_vert'],
+        totloop * 4
+      );
       let polyOffsetsBlock: BlendBlock | null = null;
 
       if (meshStruct) {
-        const polyOffField = meshStruct.fieldMap.get('poly_offset_indices');
+        const polyOffField =
+          meshStruct.fieldMap.get('face_offset_indices') ||
+          meshStruct.fieldMap.get('poly_offset_indices');
         if (polyOffField) {
           const ptr = readPointerAddr(view, mOff + polyOffField.offset, ptrSize, littleEndian);
           polyOffsetsBlock = addrMap.get(ptr) || null;
@@ -998,55 +1110,75 @@ export async function parseBlendFile(arrayBuffer: ArrayBuffer): Promise<BlendPar
       }
     }
 
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.BufferAttribute(positionsFloat, 3));
+    const baseGeometry = new THREE.BufferGeometry();
+    baseGeometry.setAttribute('position', new THREE.BufferAttribute(positionsFloat, 3));
     if (triangleIndices.length > 0) {
-      geometry.setIndex(triangleIndices);
+      baseGeometry.setIndex(triangleIndices);
     }
-    ensureGeometryAttributes(geometry);
+    ensureGeometryAttributes(baseGeometry);
 
-    // Resolve original material(s) assigned to this Mesh or its parent Object in the .blend file
+    // Resolve original material(s) assigned to this Mesh or its parent Object(s) in the .blend file
     const meshMats = resolveMaterialSlotTable(meshStruct, mOff);
-    const activeMats =
-      meshMats.length > 0
-        ? meshMats
-        : objMeta?.materials && objMeta.materials.length > 0
-          ? objMeta.materials
-          : allParsedMaterials.length > 0
-            ? [allParsedMaterials[meshNames.length % allParsedMaterials.length]]
-            : [];
-
     const firstImgTex =
       imageAddrToTexture.size > 0
         ? Array.from(imageAddrToTexture.values())[0]
         : null;
 
-    const assignedMaterial =
-      activeMats.length > 0
-        ? activeMats[0].clone()
-        : new THREE.MeshPhysicalMaterial({
-            name: 'Blender_Varsayilan_Malzeme',
-            color: firstImgTex ? 0xffffff : 0xd4d8de,
-            map: firstImgTex || null,
-            roughness: 0.36,
-            metalness: 0.15,
-            clearcoat: 0.1,
-            side: THREE.DoubleSide,
-          });
+    const instancesToBuild: ObjectMeta[] =
+      objMetas && objMetas.length > 0
+        ? objMetas
+        : [{ name: meshName, materials: [] }];
 
-    if (firstImgTex && !assignedMaterial.map) {
-      assignedMaterial.map = firstImgTex;
-      assignedMaterial.color.setHex(0xffffff);
+    for (let instIdx = 0; instIdx < instancesToBuild.length; instIdx++) {
+      const inst = instancesToBuild[instIdx];
+      const geometry = instIdx === 0 && instancesToBuild.length === 1 ? baseGeometry : baseGeometry.clone();
+
+      if (inst.matrix) {
+        geometry.applyMatrix4(inst.matrix);
+        ensureGeometryAttributes(geometry);
+      }
+
+      const activeMats =
+        meshMats.length > 0
+          ? meshMats
+          : inst.materials && inst.materials.length > 0
+            ? inst.materials
+            : allParsedMaterials.length > 0
+              ? [allParsedMaterials[meshNames.length % allParsedMaterials.length]]
+              : [];
+
+      const assignedMaterial =
+        activeMats.length > 0
+          ? activeMats[0].clone()
+          : new THREE.MeshPhysicalMaterial({
+              name: 'Blender_Varsayilan_Malzeme',
+              color: firstImgTex ? 0xffffff : 0xd4d8de,
+              map: firstImgTex || null,
+              roughness: 0.36,
+              metalness: 0.15,
+              clearcoat: 0.1,
+              side: THREE.DoubleSide,
+            });
+
+      if (firstImgTex && !assignedMaterial.map) {
+        assignedMaterial.map = firstImgTex;
+        assignedMaterial.color.setHex(0xffffff);
+      }
+
+      const finalName =
+        instancesToBuild.length > 1
+          ? `${inst.name || meshName}_${instIdx + 1}`
+          : inst.name || meshName;
+
+      const mesh = new THREE.Mesh(geometry, assignedMaterial);
+      mesh.name = finalName;
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      mesh.userData.originalMaterial = assignedMaterial.clone();
+
+      group.add(mesh);
+      meshNames.push(finalName);
     }
-
-    const mesh = new THREE.Mesh(geometry, assignedMaterial);
-    mesh.name = meshName;
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    mesh.userData.originalMaterial = assignedMaterial.clone();
-
-    group.add(mesh);
-    meshNames.push(meshName);
   }
 
   if (group.children.length === 0) {
