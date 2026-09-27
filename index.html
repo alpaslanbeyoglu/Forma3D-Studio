@@ -2,7 +2,10 @@
 <html lang="tr" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>Forma3D Studio — BLEND & STL'den USDZ'ye 3B Atölye</title>
     <meta name="description" content=".blend ve .stl dosyalarını gerçek zamanlı 3B sahnede inceleyin, fiziksel PBR malzeme ve üç noktalı stüdyo ışıklarını özelleştirip tek tıkla Apple AR uyumlu .usdz formatında dışa aktarın." />
     <meta property="og:title" content="Forma3D Studio — BLEND & STL'den USDZ'ye 3B Atölye" />
@@ -68,14 +71,15 @@
           }
         }
         if (!isViteDev && !isBuiltDist) {
+          var v = '20260927_v7';
           var link = document.createElement('link');
           link.rel = 'stylesheet';
-          link.href = './bundle/assets/app.css';
+          link.href = './bundle/assets/app.css?v=' + v;
           document.head.appendChild(link);
 
           var script = document.createElement('script');
           script.type = 'module';
-          script.src = './bundle/assets/app.js';
+          script.src = './bundle/assets/app.js?v=' + v;
           document.body.appendChild(script);
         }
       })();

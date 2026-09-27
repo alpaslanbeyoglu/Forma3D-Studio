@@ -7,10 +7,19 @@ import {
 } from '../types/studio';
 import {
   COLOR_SWATCHES,
+  CORE_MATERIAL_FINISHES,
   LIGHTING_PRESETS,
-  MATERIAL_PRESETS,
 } from '../utils/studioPresets';
-import { RotateCcw, Sun, Palette, X } from 'lucide-react';
+import {
+  RotateCcw,
+  Sun,
+  Palette,
+  X,
+  Sparkles,
+  Sliders,
+  Check,
+  Layers,
+} from 'lucide-react';
 
 interface MaterialAndLightingInspectorProps {
   activeTab: 'material' | 'lighting';
@@ -18,7 +27,7 @@ interface MaterialAndLightingInspectorProps {
   materialSettings: MaterialSettings;
   lightingSettings: LightingSettings;
   onUpdateMaterial: (partial: Partial<MaterialSettings>) => void;
-  onApplyMaterialPreset: (presetId: string) => void;
+  onApplyMaterialPreset?: (presetId: string) => void;
   onResetMaterial: () => void;
   onUpdateLighting: (partial: Partial<LightingSettings>) => void;
   onApplyLightingPreset: (presetId: string) => void;
@@ -34,13 +43,13 @@ export const MaterialAndLightingInspector: React.FC<
   materialSettings,
   lightingSettings,
   onUpdateMaterial,
-  onApplyMaterialPreset,
   onResetMaterial,
   onUpdateLighting,
   onApplyLightingPreset,
   onResetLighting,
   onClose,
 }) => {
+  const [showAdvancedSliders, setShowAdvancedSliders] = useState(false);
   const [selectedLightKey, setSelectedLightKey] = useState<
     'keyLight' | 'fillLight' | 'rimLight'
   >('keyLight');
@@ -57,7 +66,22 @@ export const MaterialAndLightingInspector: React.FC<
     });
   };
 
+  const handleApplyFinish = (finishId: 'matte' | 'glossy' | 'transparent' | 'metallic') => {
+    const finish = CORE_MATERIAL_FINISHES.find((f) => f.id === finishId);
+    if (!finish) return;
+    onUpdateMaterial({
+      useOriginalMaterials: false,
+      presetId: finishId,
+      ...finish.settings,
+    });
+  };
+
   const currentLight = lightingSettings[selectedLightKey];
+
+  // Determine active finish
+  const activeFinishId = !materialSettings.useOriginalMaterials
+    ? materialSettings.presetId
+    : null;
 
   return (
     <aside className="w-full lg:w-96 shrink-0 h-full bg-[#12151C] lg:border-l border-white/[0.07] flex flex-col overflow-hidden">
@@ -65,7 +89,7 @@ export const MaterialAndLightingInspector: React.FC<
       {onClose && (
         <div className="lg:hidden flex items-center justify-between px-5 py-3.5 border-b border-white/[0.07] bg-[#0E1017]">
           <span className="text-xs font-semibold text-slate-200">
-            {activeTab === 'material' ? 'Malzeme Laboratuvarı' : 'Işık ve Sahne Stüdyosu'}
+            {activeTab === 'material' ? 'Malzeme & Doku Stüdyosu' : 'Işık ve Sahne Stüdyosu'}
           </span>
           <button
             type="button"
@@ -90,7 +114,7 @@ export const MaterialAndLightingInspector: React.FC<
             }`}
           >
             <Palette className="w-3.5 h-3.5" />
-            <span>Malzeme Ayarları</span>
+            <span>Malzeme ve Renk</span>
           </button>
           <button
             type="button"
@@ -111,23 +135,28 @@ export const MaterialAndLightingInspector: React.FC<
       <div className="flex-1 overflow-y-auto divide-y divide-white/[0.07]">
         {activeTab === 'material' ? (
           <>
-            {/* 1. Original File Material & Studio Presets */}
-            <div className="p-5">
+            {/* 1. Core Material Finish Selector (Mat, Parlak, Şeffaf, Metalik) */}
+            <div className="p-4 sm:p-5">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-xs font-semibold text-slate-200">
-                  Malzeme Kaynağı ve Hazır Profiller
-                </h2>
+                <div>
+                  <h2 className="text-xs font-semibold text-white">
+                    Malzeme Türü
+                  </h2>
+                  <p className="text-[11px] text-slate-400">
+                    Modelinize uygulamak istediğiniz ana kaplama tarzını seçin
+                  </p>
+                </div>
                 <button
                   type="button"
                   onClick={onResetMaterial}
-                  className="inline-flex items-center gap-1 text-[11px] text-slate-400 hover:text-white transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1 text-[11px] text-slate-400 hover:text-white transition-colors cursor-pointer whitespace-nowrap shrink-0"
                 >
                   <RotateCcw className="w-3 h-3" />
-                  <span>Orijinale Dön</span>
+                  <span>Sıfırla</span>
                 </button>
               </div>
 
-              {/* Original File Material & Textures Toggle Card */}
+              {/* Original File Material Toggle */}
               <button
                 type="button"
                 onClick={() =>
@@ -139,7 +168,7 @@ export const MaterialAndLightingInspector: React.FC<
                 className={`w-full flex items-center justify-between gap-3 p-3 mb-3 rounded-xl text-left transition-colors cursor-pointer ${
                   materialSettings.useOriginalMaterials
                     ? 'bg-emerald-500/15 border border-emerald-500/50 text-white'
-                    : 'bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.06] text-slate-300'
+                    : 'bg-white/[0.02] border border-white/[0.08] hover:bg-white/[0.05] text-slate-300'
                 }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
@@ -152,364 +181,200 @@ export const MaterialAndLightingInspector: React.FC<
                   />
                   <div className="min-w-0">
                     <div className="text-xs font-semibold truncate">
-                      Dosyanın Orijinal Materyal & Dokuları
+                      Dosyanın Orijinal Malzemesi & Dokusu
                     </div>
                     <div className="text-[11px] text-slate-400 truncate">
-                      Aktarılan modelin kendi yüzey renklerini ve dokularını korur
+                      Yüklenen dosyanın kendi yüzey renk ve dokularını kullan
                     </div>
                   </div>
                 </div>
-                <span
-                  className={`text-[11px] font-semibold shrink-0 ${
-                    materialSettings.useOriginalMaterials
-                      ? 'text-emerald-300'
-                      : 'text-slate-400'
-                  }`}
-                >
-                  {materialSettings.useOriginalMaterials ? 'Aktif' : 'Seç'}
-                </span>
+                {materialSettings.useOriginalMaterials && (
+                  <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-300 shrink-0">
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Aktif</span>
+                  </span>
+                )}
               </button>
 
-              <div className="text-[11px] text-slate-400 mb-2">
-                Stüdyo PBR Malzeme Kütüphanesi (Üzerine Uygula)
-              </div>
-
+              {/* 4 Core Finishes: Mat, Parlak, Şeffaf, Metalik */}
               <div className="grid grid-cols-2 gap-2">
-                {MATERIAL_PRESETS.map((preset) => {
-                  const isActive =
+                {CORE_MATERIAL_FINISHES.map((finish) => {
+                  const isSelected =
                     !materialSettings.useOriginalMaterials &&
-                    materialSettings.presetId === preset.id;
+                    activeFinishId === finish.id;
                   return (
                     <button
-                      key={preset.id}
+                      key={finish.id}
                       type="button"
-                      onClick={() => onApplyMaterialPreset(preset.id)}
-                      className={`flex items-center gap-2.5 p-2 rounded-lg text-left transition-colors cursor-pointer ${
-                        isActive
-                          ? 'bg-amber-500/15 border border-amber-500/45 text-white'
-                          : 'bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.06] text-slate-300'
+                      onClick={() => handleApplyFinish(finish.id)}
+                      className={`relative flex flex-col p-3 rounded-xl text-left transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-amber-500/15 border-2 border-amber-400 text-white shadow-md'
+                          : 'bg-white/[0.02] border border-white/[0.07] hover:bg-white/[0.06] text-slate-300'
                       }`}
                     >
-                      <span
-                        className="w-6 h-6 rounded-full shrink-0 border border-white/20 shadow-inner"
-                        style={{ background: preset.swatchGradient }}
-                      />
-                      <div className="min-w-0">
-                        <div className="text-xs font-medium truncate">
-                          {preset.name}
-                        </div>
-                        <div className="text-[10px] text-slate-400 truncate">
-                          {preset.category}
-                        </div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span
+                          className="w-7 h-7 rounded-full border border-white/20 shadow-inner shrink-0"
+                          style={{ background: finish.iconGradient }}
+                        />
+                        {isSelected && (
+                          <span className="w-4 h-4 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center text-[10px] font-bold">
+                            ✓
+                          </span>
+                        )}
                       </div>
+                      <span className="text-xs font-bold text-white tracking-tight">
+                        {finish.name}
+                      </span>
+                      <span className="text-[10px] text-slate-400 mt-0.5 line-clamp-1 leading-snug">
+                        {finish.description}
+                      </span>
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* 2. Base Albedo Color & Curated Swatches */}
-            <div className="p-5">
+            {/* 2. Color Palette & Options (Renk Seçenekleri) */}
+            <div className="p-4 sm:p-5">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold text-slate-200">
-                  Ana Yüzey Rengi (Albedo)
-                </span>
+                <h3 className="text-xs font-semibold text-white">
+                  Renk Seçenekleri
+                </h3>
                 <span className="text-xs font-mono-tabular text-slate-400 uppercase">
                   {materialSettings.color}
                 </span>
               </div>
 
-              <div className="flex items-center gap-2 mb-3">
-                <label className="relative flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/10 cursor-pointer hover:border-white/25 transition-colors">
+              {/* Curated Color Swatches Grid */}
+              <div className="grid grid-cols-5 gap-2 mb-3.5">
+                {COLOR_SWATCHES.map((sw) => {
+                  const isCurrent =
+                    materialSettings.color.toLowerCase() === sw.hex.toLowerCase();
+                  return (
+                    <button
+                      key={sw.hex}
+                      type="button"
+                      onClick={() =>
+                        onUpdateMaterial({
+                          color: sw.hex,
+                          useOriginalMaterials: false,
+                        })
+                      }
+                      title={sw.name}
+                      className={`group relative flex flex-col items-center gap-1 p-1.5 rounded-lg border transition-all cursor-pointer ${
+                        isCurrent
+                          ? 'border-amber-400 bg-amber-500/10 scale-105 shadow-sm'
+                          : 'border-white/10 hover:border-white/25 bg-white/[0.02]'
+                      }`}
+                    >
+                      <span
+                        className="w-6 h-6 rounded-full border border-black/30 shadow-inner"
+                        style={{ backgroundColor: sw.hex }}
+                      />
+                      <span className="text-[9px] text-slate-400 truncate max-w-full">
+                        {sw.name.split(' ')[0]}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Custom Color Input */}
+              <label className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.03] border border-white/10 cursor-pointer hover:border-white/20 transition-colors">
+                <div className="flex items-center gap-2.5">
                   <input
                     type="color"
                     value={materialSettings.color}
                     onChange={(e) =>
                       onUpdateMaterial({
                         color: e.target.value,
-                        presetId: 'custom',
+                        useOriginalMaterials: false,
                       })
                     }
-                    className="w-5 h-5 rounded cursor-pointer bg-transparent border-0"
+                    className="w-7 h-7 rounded-lg cursor-pointer bg-transparent border-0"
                   />
-                  <span className="text-xs text-slate-200">Özel Renk Seç</span>
-                </label>
-
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {COLOR_SWATCHES.map((sw) => (
-                    <button
-                      key={sw.hex}
-                      type="button"
-                      onClick={() =>
-                        onUpdateMaterial({ color: sw.hex, presetId: 'custom' })
-                      }
-                      title={sw.name}
-                      className={`w-6 h-6 rounded-full border transition-transform cursor-pointer ${
-                        materialSettings.color.toLowerCase() ===
-                        sw.hex.toLowerCase()
-                          ? 'border-amber-400 scale-110'
-                          : 'border-white/15 hover:scale-105'
-                      }`}
-                      style={{ backgroundColor: sw.hex }}
-                    />
-                  ))}
+                  <div>
+                    <div className="text-xs font-medium text-white">
+                      Özel Renk Paletinden Seç
+                    </div>
+                    <div className="text-[10px] text-slate-400">
+                      İstediğiniz ton veya Hex kodunu uygulayın
+                    </div>
+                  </div>
                 </div>
-              </div>
+                <span className="text-xs font-mono-tabular text-amber-400 font-semibold px-2 py-1 rounded bg-amber-500/10 border border-amber-500/20">
+                  {materialSettings.color.toUpperCase()}
+                </span>
+              </label>
             </div>
 
-            {/* 3. Physical PBR Sliders */}
-            <div className="p-5 space-y-4">
-              <h3 className="text-xs font-semibold text-slate-200">
-                Fiziksel Yüzey Parametreleri
-              </h3>
-
-              {/* Metalness */}
-              <div>
-                <div className="flex justify-between text-xs mb-1.5">
-                  <span className="text-slate-300">Metaliklik (Metalness)</span>
-                  <span className="font-mono-tabular text-amber-400">
-                    {Math.round(materialSettings.metalness * 100)}%
-                  </span>
+            {/* 3. Surface Texture Selection (Doku Seçenekleri) */}
+            <div className="p-4 sm:p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xs font-semibold text-white">
+                    Yüzey Dokusu
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Modele mikro yüzey kabartması ekleyin
+                  </p>
                 </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={materialSettings.metalness}
-                  onChange={(e) =>
-                    onUpdateMaterial({
-                      metalness: parseFloat(e.target.value),
-                      presetId: 'custom',
-                    })
-                  }
-                  className="w-full studio-slider"
-                />
               </div>
-
-              {/* Roughness */}
-              <div>
-                <div className="flex justify-between text-xs mb-1.5">
-                  <span className="text-slate-300">Pürüzlülük (Roughness)</span>
-                  <span className="font-mono-tabular text-amber-400">
-                    {Math.round(materialSettings.roughness * 100)}%
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={materialSettings.roughness}
-                  onChange={(e) =>
-                    onUpdateMaterial({
-                      roughness: parseFloat(e.target.value),
-                      presetId: 'custom',
-                    })
-                  }
-                  className="w-full studio-slider"
-                />
-              </div>
-
-              {/* Clearcoat */}
-              <div>
-                <div className="flex justify-between text-xs mb-1.5">
-                  <span className="text-slate-300">Vernik Katmanı (Clearcoat)</span>
-                  <span className="font-mono-tabular text-slate-300">
-                    {Math.round(materialSettings.clearcoat * 100)}%
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={materialSettings.clearcoat}
-                  onChange={(e) =>
-                    onUpdateMaterial({
-                      clearcoat: parseFloat(e.target.value),
-                      presetId: 'custom',
-                    })
-                  }
-                  className="w-full studio-slider"
-                />
-              </div>
-
-              {/* Clearcoat Roughness */}
-              <div>
-                <div className="flex justify-between text-xs mb-1.5">
-                  <span className="text-slate-300">Vernik Pürüzlülüğü</span>
-                  <span className="font-mono-tabular text-slate-300">
-                    {Math.round(materialSettings.clearcoatRoughness * 100)}%
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={materialSettings.clearcoatRoughness}
-                  onChange={(e) =>
-                    onUpdateMaterial({
-                      clearcoatRoughness: parseFloat(e.target.value),
-                      presetId: 'custom',
-                    })
-                  }
-                  className="w-full studio-slider"
-                />
-              </div>
-
-              {/* Transmission / Glass */}
-              <div>
-                <div className="flex justify-between text-xs mb-1.5">
-                  <span className="text-slate-300">
-                    Işık Geçirgenliği (Cam / Reçine)
-                  </span>
-                  <span className="font-mono-tabular text-slate-300">
-                    {Math.round(materialSettings.transmission * 100)}%
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={materialSettings.transmission}
-                  onChange={(e) =>
-                    onUpdateMaterial({
-                      transmission: parseFloat(e.target.value),
-                      presetId: 'custom',
-                    })
-                  }
-                  className="w-full studio-slider"
-                />
-              </div>
-
-              {/* IOR */}
-              <div>
-                <div className="flex justify-between text-xs mb-1.5">
-                  <span className="text-slate-300">Kırılma İndisi (IOR)</span>
-                  <span className="font-mono-tabular text-slate-300">
-                    {materialSettings.ior.toFixed(2)}
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="1.0"
-                  max="2.33"
-                  step="0.01"
-                  value={materialSettings.ior}
-                  onChange={(e) =>
-                    onUpdateMaterial({
-                      ior: parseFloat(e.target.value),
-                      presetId: 'custom',
-                    })
-                  }
-                  className="w-full studio-slider"
-                />
-              </div>
-
-              {/* Opacity */}
-              <div>
-                <div className="flex justify-between text-xs mb-1.5">
-                  <span className="text-slate-300">Opaklık (Opacity)</span>
-                  <span className="font-mono-tabular text-slate-300">
-                    {Math.round(materialSettings.opacity * 100)}%
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="0.15"
-                  max="1"
-                  step="0.01"
-                  value={materialSettings.opacity}
-                  onChange={(e) =>
-                    onUpdateMaterial({
-                      opacity: parseFloat(e.target.value),
-                      presetId: 'custom',
-                    })
-                  }
-                  className="w-full studio-slider"
-                />
-              </div>
-            </div>
-
-            {/* 4. Procedural Micro-Surface Pattern (Exports to USDZ) */}
-            <div className="p-5 space-y-3.5">
-              <h3 className="text-xs font-semibold text-slate-200">
-                Mikro Yüzey Dokusu (USDZ Uyumlu)
-              </h3>
 
               <div className="grid grid-cols-2 gap-1.5">
                 {(
                   [
-                    { id: 'none', label: 'Pürüzsüz (Yok)' },
+                    { id: 'none', label: 'Düz (Pürüzsüz)' },
                     { id: 'brushed_metal', label: 'Fırçalanmış Metal' },
                     { id: 'micro_sand', label: 'Mikro Kumlama' },
-                    { id: 'carbon_weave', label: 'Karbon Dokuma' },
+                    { id: 'carbon_weave', label: 'Karbon Fiber' },
                     { id: 'print_layers', label: '3B Baskı Katmanı' },
                   ] as { id: SurfacePatternType; label: string }[]
-                ).map((pat) => (
-                  <button
-                    key={pat.id}
-                    type="button"
-                    onClick={() =>
-                      onUpdateMaterial({
-                        surfacePattern: pat.id,
-                        presetId: 'custom',
-                      })
-                    }
-                    className={`py-2 px-2.5 rounded-lg text-xs font-medium text-left transition-colors cursor-pointer whitespace-nowrap truncate ${
-                      materialSettings.surfacePattern === pat.id
-                        ? 'bg-amber-500/15 border border-amber-500/45 text-amber-300'
-                        : 'bg-white/[0.02] border border-white/[0.06] text-slate-300 hover:bg-white/[0.05]'
-                    }`}
-                  >
-                    {pat.label}
-                  </button>
-                ))}
+                ).map((pat) => {
+                  const isSelected = materialSettings.surfacePattern === pat.id;
+                  return (
+                    <button
+                      key={pat.id}
+                      type="button"
+                      onClick={() =>
+                        onUpdateMaterial({
+                          surfacePattern: pat.id,
+                          useOriginalMaterials: false,
+                        })
+                      }
+                      className={`py-2 px-2.5 rounded-lg text-xs font-medium text-left transition-colors cursor-pointer truncate ${
+                        isSelected
+                          ? 'bg-amber-500/20 border border-amber-400 text-amber-300 font-semibold'
+                          : 'bg-white/[0.02] border border-white/[0.07] text-slate-300 hover:bg-white/[0.05]'
+                      }`}
+                    >
+                      {pat.label}
+                    </button>
+                  );
+                })}
               </div>
 
               {materialSettings.surfacePattern !== 'none' && (
-                <div className="space-y-3 pt-2">
+                <div className="pt-2 space-y-2.5">
                   <div>
                     <div className="flex justify-between text-xs mb-1">
-                      <span className="text-slate-400">Doku Sıklığı</span>
-                      <span className="font-mono-tabular text-slate-300">
-                        {materialSettings.patternScale}x
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min="1"
-                      max="12"
-                      step="1"
-                      value={materialSettings.patternScale}
-                      onChange={(e) =>
-                        onUpdateMaterial({
-                          patternScale: parseInt(e.target.value, 10),
-                        })
-                      }
-                      className="w-full studio-slider"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-slate-400">Kabartma Derinliği</span>
-                      <span className="font-mono-tabular text-slate-300">
+                      <span className="text-slate-300">Doku Belirginliği (Kabartma)</span>
+                      <span className="font-mono-tabular text-amber-400">
                         {(materialSettings.bumpScale * 1000).toFixed(0)} µm
                       </span>
                     </div>
                     <input
                       type="range"
                       min="0.005"
-                      max="0.1"
+                      max="0.08"
                       step="0.005"
                       value={materialSettings.bumpScale}
                       onChange={(e) =>
                         onUpdateMaterial({
                           bumpScale: parseFloat(e.target.value),
+                          useOriginalMaterials: false,
                         })
                       }
                       className="w-full studio-slider"
@@ -519,41 +384,170 @@ export const MaterialAndLightingInspector: React.FC<
               )}
             </div>
 
-            {/* 5. Emissive Glow */}
-            <div className="p-5 space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-semibold text-slate-200">
-                  Işıma (Emissive) Katmanı
-                </h3>
-                <input
-                  type="color"
-                  value={materialSettings.emissiveColor}
-                  onChange={(e) =>
-                    onUpdateMaterial({ emissiveColor: e.target.value })
-                  }
-                  className="w-5 h-5 rounded cursor-pointer bg-transparent border-0"
-                />
-              </div>
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-slate-400">Işıma Şiddeti</span>
-                  <span className="font-mono-tabular text-slate-300">
-                    {materialSettings.emissiveIntensity.toFixed(2)}
-                  </span>
+            {/* 4. Optional Fine-Tuning Sliders Accordion (İnce Ayarlar) */}
+            <div className="p-4 sm:p-5">
+              <button
+                type="button"
+                onClick={() => setShowAdvancedSliders(!showAdvancedSliders)}
+                className="w-full flex items-center justify-between text-xs font-semibold text-slate-300 hover:text-white transition-colors cursor-pointer py-1"
+              >
+                <div className="flex items-center gap-1.5">
+                  <Sliders className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Hassas Ayar Kaydırıcıları</span>
                 </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="2"
-                  step="0.05"
-                  value={materialSettings.emissiveIntensity}
-                  onChange={(e) =>
-                    onUpdateMaterial({
-                      emissiveIntensity: parseFloat(e.target.value),
-                    })
+                <span className="text-[11px] text-amber-400">
+                  {showAdvancedSliders ? 'Gizle' : 'Göster'}
+                </span>
+              </button>
+
+              {showAdvancedSliders && (
+                <div className="space-y-3.5 pt-3.5 mt-2 border-t border-white/[0.06]">
+                  {/* Roughness (Matlık) */}
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-slate-300">Matlık ↔ Parlaklık (Roughness)</span>
+                      <span className="font-mono-tabular text-amber-400">
+                        {Math.round(materialSettings.roughness * 100)}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      value={materialSettings.roughness}
+                      onChange={(e) =>
+                        onUpdateMaterial({
+                          roughness: parseFloat(e.target.value),
+                          useOriginalMaterials: false,
+                        })
+                      }
+                      className="w-full studio-slider"
+                    />
+                  </div>
+
+                  {/* Metalness (Metalik Oranı) */}
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-slate-300">Metalik Oranı (Metalness)</span>
+                      <span className="font-mono-tabular text-amber-400">
+                        {Math.round(materialSettings.metalness * 100)}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      value={materialSettings.metalness}
+                      onChange={(e) =>
+                        onUpdateMaterial({
+                          metalness: parseFloat(e.target.value),
+                          useOriginalMaterials: false,
+                        })
+                      }
+                      className="w-full studio-slider"
+                    />
+                  </div>
+
+                  {/* Transmission (Şeffaflık) */}
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-slate-300">Şeffaflık / Cam Oranı (Transmission)</span>
+                      <span className="font-mono-tabular text-amber-400">
+                        {Math.round(materialSettings.transmission * 100)}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      value={materialSettings.transmission}
+                      onChange={(e) =>
+                        onUpdateMaterial({
+                          transmission: parseFloat(e.target.value),
+                          useOriginalMaterials: false,
+                        })
+                      }
+                      className="w-full studio-slider"
+                    />
+                  </div>
+
+                  {/* Clearcoat (Cila) */}
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-slate-300">Vernik / Cila Katmanı (Clearcoat)</span>
+                      <span className="font-mono-tabular text-slate-300">
+                        {Math.round(materialSettings.clearcoat * 100)}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      value={materialSettings.clearcoat}
+                      onChange={(e) =>
+                        onUpdateMaterial({
+                          clearcoat: parseFloat(e.target.value),
+                          useOriginalMaterials: false,
+                        })
+                      }
+                      className="w-full studio-slider"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 5. Viewport Geometry Toggles */}
+            <div className="p-4 sm:p-5 space-y-2.5">
+              <h3 className="text-xs font-semibold text-slate-300">
+                Görünüm Seçenekleri
+              </h3>
+              <div className="grid grid-cols-3 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() =>
+                    onUpdateMaterial({ wireframe: !materialSettings.wireframe })
                   }
-                  className="w-full studio-slider"
-                />
+                  className={`py-2 px-2 rounded-lg text-xs font-medium text-center transition-colors cursor-pointer ${
+                    materialSettings.wireframe
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-400/50 font-semibold'
+                      : 'bg-white/[0.02] border border-white/[0.06] text-slate-300 hover:bg-white/[0.05]'
+                  }`}
+                >
+                  Tel Kafes
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    onUpdateMaterial({ flatShading: !materialSettings.flatShading })
+                  }
+                  className={`py-2 px-2 rounded-lg text-xs font-medium text-center transition-colors cursor-pointer ${
+                    materialSettings.flatShading
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-400/50 font-semibold'
+                      : 'bg-white/[0.02] border border-white/[0.06] text-slate-300 hover:bg-white/[0.05]'
+                  }`}
+                >
+                  {materialSettings.flatShading ? 'Fasetli' : 'Pürüzsüz'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    onUpdateMaterial({ doubleSided: !materialSettings.doubleSided })
+                  }
+                  className={`py-2 px-2 rounded-lg text-xs font-medium text-center transition-colors cursor-pointer ${
+                    materialSettings.doubleSided
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-400/50 font-semibold'
+                      : 'bg-white/[0.02] border border-white/[0.06] text-slate-300 hover:bg-white/[0.05]'
+                  }`}
+                >
+                  Çift Yüzey
+                </button>
               </div>
             </div>
           </>
@@ -561,10 +555,10 @@ export const MaterialAndLightingInspector: React.FC<
           <>
             {/* LIGHTING TAB */}
             {/* 1. Studio Lighting Presets */}
-            <div className="p-5">
+            <div className="p-4 sm:p-5">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-xs font-semibold text-slate-200">
-                  Stüdyo Aydınlatma Senaryoları
+                <h2 className="text-xs font-semibold text-white">
+                  Stüdyo Işık Senaryoları
                 </h2>
                 <button
                   type="button"
@@ -601,9 +595,9 @@ export const MaterialAndLightingInspector: React.FC<
             </div>
 
             {/* 2. Three-Point Light Rig Controls (Key / Fill / Rim) */}
-            <div className="p-5 space-y-4">
+            <div className="p-4 sm:p-5 space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-semibold text-slate-200">
+                <h3 className="text-xs font-semibold text-white">
                   3 Noktalı Işık Kaynakları
                 </h3>
                 <label className="flex items-center gap-1.5 text-[11px] text-slate-400 cursor-pointer">
@@ -615,7 +609,7 @@ export const MaterialAndLightingInspector: React.FC<
                     }
                     className="w-3.5 h-3.5 accent-amber-500 rounded cursor-pointer"
                   />
-                  <span>Vektörleri Göster</span>
+                  <span>Işıkları Göster</span>
                 </label>
               </div>
 
@@ -679,7 +673,7 @@ export const MaterialAndLightingInspector: React.FC<
 
                 <div>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-slate-300">Işık Şiddeti (Lümen)</span>
+                    <span className="text-slate-300">Işık Şiddeti</span>
                     <span className="font-mono-tabular text-amber-400">
                       {currentLight.intensity.toFixed(2)}
                     </span>
@@ -701,7 +695,7 @@ export const MaterialAndLightingInspector: React.FC<
 
                 <div>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-slate-300">Yatay Yörünge Açısı</span>
+                    <span className="text-slate-300">Yatay Açı (Azimuth)</span>
                     <span className="font-mono-tabular text-slate-300">
                       {currentLight.azimuth}°
                     </span>
@@ -723,7 +717,7 @@ export const MaterialAndLightingInspector: React.FC<
 
                 <div>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-slate-300">Dikey Yükseklik Açısı</span>
+                    <span className="text-slate-300">Yükseklik Açısı</span>
                     <span className="font-mono-tabular text-slate-300">
                       {currentLight.elevation}°
                     </span>
@@ -746,8 +740,8 @@ export const MaterialAndLightingInspector: React.FC<
             </div>
 
             {/* 3. Studio Environment Reflection & Exposure */}
-            <div className="p-5 space-y-4">
-              <h3 className="text-xs font-semibold text-slate-200">
+            <div className="p-4 sm:p-5 space-y-4">
+              <h3 className="text-xs font-semibold text-white">
                 Ortam Yansıması ve Pozlama
               </h3>
 
@@ -777,28 +771,6 @@ export const MaterialAndLightingInspector: React.FC<
 
               <div>
                 <div className="flex justify-between text-xs mb-1">
-                  <span className="text-slate-300">Ortam Işığı (Ambient)</span>
-                  <span className="font-mono-tabular text-slate-300">
-                    {lightingSettings.ambientIntensity.toFixed(2)}
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="2"
-                  step="0.05"
-                  value={lightingSettings.ambientIntensity}
-                  onChange={(e) =>
-                    onUpdateLighting({
-                      ambientIntensity: parseFloat(e.target.value),
-                    })
-                  }
-                  className="w-full studio-slider"
-                />
-              </div>
-
-              <div>
-                <div className="flex justify-between text-xs mb-1">
                   <span className="text-slate-300">Kamera Pozlama (ACES)</span>
                   <span className="font-mono-tabular text-slate-300">
                     {lightingSettings.exposure.toFixed(2)} EV
@@ -818,51 +790,6 @@ export const MaterialAndLightingInspector: React.FC<
                   className="w-full studio-slider"
                 />
               </div>
-            </div>
-
-            {/* 4. Shadows & Background */}
-            <div className="p-5 space-y-3.5">
-              <h3 className="text-xs font-semibold text-slate-200">
-                Gölgeler ve Sahne Arka Planı
-              </h3>
-
-              <label className="flex items-center justify-between cursor-pointer">
-                <span className="text-xs text-slate-300">
-                  Yumuşak Zemin Gölgeleri
-                </span>
-                <input
-                  type="checkbox"
-                  checked={lightingSettings.shadowsEnabled}
-                  onChange={(e) =>
-                    onUpdateLighting({ shadowsEnabled: e.target.checked })
-                  }
-                  className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
-                />
-              </label>
-
-              {lightingSettings.shadowsEnabled && (
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-slate-400">Gölge Yumuşaklığı</span>
-                    <span className="font-mono-tabular text-slate-300">
-                      {lightingSettings.shadowSoftness} px
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min="1"
-                    max="8"
-                    step="0.5"
-                    value={lightingSettings.shadowSoftness}
-                    onChange={(e) =>
-                      onUpdateLighting({
-                        shadowSoftness: parseFloat(e.target.value),
-                      })
-                    }
-                    className="w-full studio-slider"
-                  />
-                </div>
-              )}
 
               <div className="flex items-center justify-between pt-2">
                 <span className="text-xs text-slate-300">

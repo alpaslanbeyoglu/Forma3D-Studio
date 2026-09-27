@@ -99,9 +99,30 @@ export default function App() {
     }));
   }, []);
 
-  // Load initial sample model on mount
+  // Load initial sample model on mount & sync iOS Safari visualViewport height
   useEffect(() => {
     handleSelectSample('turbine_stl');
+
+    const updateAppHeight = () => {
+      const vv = window.visualViewport;
+      const vh = vv ? vv.height : window.innerHeight;
+      const offsetTop = vv ? vv.offsetTop : 0;
+      document.documentElement.style.setProperty('--app-height', `${vh}px`);
+      document.documentElement.style.setProperty('--app-offset-top', `${offsetTop}px`);
+    };
+
+    updateAppHeight();
+    window.addEventListener('resize', updateAppHeight);
+    window.addEventListener('orientationchange', updateAppHeight);
+    window.visualViewport?.addEventListener('resize', updateAppHeight);
+    window.visualViewport?.addEventListener('scroll', updateAppHeight);
+
+    return () => {
+      window.removeEventListener('resize', updateAppHeight);
+      window.removeEventListener('orientationchange', updateAppHeight);
+      window.visualViewport?.removeEventListener('resize', updateAppHeight);
+      window.visualViewport?.removeEventListener('scroll', updateAppHeight);
+    };
   }, [handleSelectSample]);
 
   // Handle user uploading a .blend, .blend1, .stl, .obj, or .glb file
@@ -245,25 +266,20 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col w-screen h-screen overflow-hidden bg-[#0B0D11] text-[#F1F5F9]">
+    <div className="app-viewport-shell flex flex-col overflow-hidden bg-[#0B0D11] text-[#F1F5F9]">
       {/* Top Bar: Responsive header with Wordmark, Desktop Nav, and Action Buttons */}
-      <header className="h-14 shrink-0 flex items-center justify-between px-3 sm:px-6 bg-[#12151C] border-b border-white/[0.07] z-20">
+      <header className="h-13 sm:h-14 shrink-0 flex items-center justify-between gap-2 px-3 sm:px-6 bg-[#12151C] border-b border-white/[0.07] z-30">
         {/* Zone 1: Single text element wordmark */}
-        <div className="flex items-center gap-2">
-          <a
-            href="#studio"
-            onClick={(e) => {
-              e.preventDefault();
-              handleSelectSample('turbine_stl');
-            }}
-            className="text-base sm:text-lg font-display font-bold tracking-tight text-white whitespace-nowrap"
-          >
-            Forma3D Studio
-          </a>
-          <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-            BLEND · STL · USDZ
-          </span>
-        </div>
+        <a
+          href="#studio"
+          onClick={(e) => {
+            e.preventDefault();
+            handleSelectSample('turbine_stl');
+          }}
+          className="text-base sm:text-lg font-display font-bold tracking-tight text-white whitespace-nowrap shrink-0"
+        >
+          Forma3D
+        </a>
 
         {/* Zone 2: Desktop clean text navigation links */}
         <nav className="hidden md:flex items-center gap-6 text-xs font-medium text-slate-300">
@@ -302,7 +318,7 @@ export default function App() {
         </nav>
 
         {/* Zone 3: Primary Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <input
             ref={headerFileInputRef}
             type="file"
@@ -318,30 +334,30 @@ export default function App() {
           <button
             type="button"
             onClick={() => headerFileInputRef.current?.click()}
-            className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 text-xs font-medium text-white transition-colors cursor-pointer whitespace-nowrap"
+            className="min-h-[38px] inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-xs font-semibold text-amber-300 transition-colors cursor-pointer whitespace-nowrap shrink-0"
             title=".blend, .blend1, .stl, .obj veya .glb Dosyası Yükle"
           >
-            <FileUp className="w-3.5 h-3.5 text-amber-400" />
+            <FileUp className="w-3.5 h-3.5 text-amber-400 shrink-0" />
             <span>Model Yükle</span>
           </button>
 
           <button
             type="button"
             onClick={() => captureScreenshotRef.current?.()}
-            className="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-xs font-medium text-slate-200 transition-colors cursor-pointer whitespace-nowrap"
+            className="min-h-[38px] inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-xs font-medium text-slate-200 transition-colors cursor-pointer whitespace-nowrap shrink-0"
             title="Sahnenin PNG Render Görüntüsünü İndir"
           >
-            <Camera className="w-3.5 h-3.5 text-slate-300" />
+            <Camera className="w-3.5 h-3.5 text-slate-300 shrink-0" />
             <span className="hidden sm:inline">Render Al</span>
           </button>
 
           <button
             type="button"
             onClick={() => setIsExportModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap shadow-sm"
+            className="min-h-[38px] inline-flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap shrink-0 shadow-sm"
           >
-            <Download className="w-3.5 h-3.5" />
-            <span>.USDZ Dışa Aktar</span>
+            <Download className="w-3.5 h-3.5 shrink-0" />
+            <span>.USDZ</span>
           </button>
         </div>
       </header>
@@ -469,52 +485,61 @@ export default function App() {
         )}
       </div>
 
-      {/* Mobile Studio Bottom Navigation Bar */}
-      <nav className="lg:hidden shrink-0 h-16 bg-[#12151C]/95 backdrop-blur-xl border-t border-white/[0.08] flex items-center justify-around px-2 z-30 pb-[env(safe-area-inset-bottom)]">
+      {/* Mobile Studio Bottom Navigation Bar — raised above iOS Safari bottom bar */}
+      <nav className="lg:hidden shrink-0 bg-[#12151C]/95 backdrop-blur-xl border-t border-white/[0.08] grid grid-cols-5 items-center px-1.5 pt-1.5 pb-[calc(env(safe-area-inset-bottom,0px)+18px)] z-30">
+        <button
+          type="button"
+          onClick={() => headerFileInputRef.current?.click()}
+          className="min-h-[44px] flex flex-col items-center justify-center gap-1 py-1 text-[11px] font-semibold text-amber-400 hover:text-amber-300 transition-colors cursor-pointer whitespace-nowrap"
+        >
+          <FileUp className="w-4 h-4 shrink-0" />
+          <span>Model Yükle</span>
+        </button>
+
         <button
           type="button"
           onClick={() => openMobileTab('file')}
-          className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 text-[11px] font-medium transition-colors cursor-pointer ${
-            mobileSheet === 'file' ? 'text-amber-400 font-semibold' : 'text-slate-400 hover:text-slate-200'
+          className={`min-h-[44px] flex flex-col items-center justify-center gap-1 py-1 text-[11px] font-medium transition-colors cursor-pointer whitespace-nowrap ${
+            mobileSheet === 'file' ? 'text-amber-400 font-semibold' : 'text-slate-300 hover:text-white'
           }`}
         >
-          <Layers className="w-4 h-4" />
-          <span>Model</span>
+          <Layers className="w-4 h-4 shrink-0" />
+          <span>Sahne</span>
         </button>
 
         <button
           type="button"
           onClick={() => openMobileTab('material')}
-          className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 text-[11px] font-medium transition-colors cursor-pointer ${
+          className={`min-h-[44px] flex flex-col items-center justify-center gap-1 py-1 text-[11px] font-medium transition-colors cursor-pointer whitespace-nowrap ${
             mobileSheet === 'material' || (mobileSheet !== 'none' && inspectorTab === 'material')
               ? 'text-amber-400 font-semibold'
-              : 'text-slate-400 hover:text-slate-200'
+              : 'text-slate-300 hover:text-white'
           }`}
         >
-          <Palette className="w-4 h-4" />
+          <Palette className="w-4 h-4 shrink-0" />
           <span>Malzeme</span>
         </button>
 
         <button
           type="button"
           onClick={() => openMobileTab('lighting')}
-          className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 text-[11px] font-medium transition-colors cursor-pointer ${
+          className={`min-h-[44px] flex flex-col items-center justify-center gap-1 py-1 text-[11px] font-medium transition-colors cursor-pointer whitespace-nowrap ${
             mobileSheet === 'lighting' || (mobileSheet !== 'none' && inspectorTab === 'lighting')
               ? 'text-amber-400 font-semibold'
-              : 'text-slate-400 hover:text-slate-200'
+              : 'text-slate-300 hover:text-white'
           }`}
         >
-          <Sun className="w-4 h-4" />
+          <Sun className="w-4 h-4 shrink-0" />
           <span>Işık</span>
         </button>
 
         <button
           type="button"
           onClick={() => setIsExportModalOpen(true)}
-          className="flex flex-col items-center justify-center gap-1 flex-1 py-1 text-[11px] font-medium text-amber-400 hover:text-amber-300 transition-colors cursor-pointer"
+          className="min-h-[44px] flex flex-col items-center justify-center gap-1 py-1 text-[11px] font-semibold text-amber-400 hover:text-amber-300 transition-colors cursor-pointer whitespace-nowrap"
         >
-          <Download className="w-4 h-4" />
-          <span className="font-semibold">.USDZ</span>
+          <Download className="w-4 h-4 shrink-0" />
+          <span>.USDZ</span>
         </button>
       </nav>
 

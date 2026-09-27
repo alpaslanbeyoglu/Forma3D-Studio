@@ -2,6 +2,10 @@ import * as THREE from 'three';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js';
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
+import { TDSLoader } from 'three/examples/jsm/loaders/TDSLoader.js';
+import { ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader.js';
 import { ModelStats, SubMeshInfo } from '../types/studio';
 import { parseBlendFile } from './blendParser';
 import { ensureGeometryAttributes } from './proceduralTextures';
@@ -202,7 +206,129 @@ export async function load3DFile(
     return { group, stats };
   }
 
+  if (ext === 'ply') {
+    const loader = new PLYLoader();
+    const geometry = loader.parse(buffer);
+    ensureGeometryAttributes(geometry);
+    const hasColors = geometry.hasAttribute('color');
+    const plyMat = new THREE.MeshPhysicalMaterial({
+      name: 'PLY_Orijinal_Yuzey',
+      color: hasColors ? 0xffffff : 0x94a3b8,
+      vertexColors: hasColors,
+      roughness: 0.38,
+      metalness: 0.25,
+      side: THREE.DoubleSide,
+    });
+    const mesh = new THREE.Mesh(geometry, plyMat);
+    mesh.userData.originalMaterial = plyMat.clone();
+    mesh.name = file.name.replace(/\.ply$/i, '') || 'PLY_Model';
+    const group = new THREE.Group();
+    group.add(mesh);
+    const stats = computeGroupStats(group, file.name, 'PLY', fileSizeStr);
+    return { group, stats };
+  }
+
+  if (ext === 'fbx') {
+    const loader = new FBXLoader();
+    const fbxGroup = loader.parse(buffer, '');
+    const group = new THREE.Group();
+    let idx = 1;
+    fbxGroup.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const src = child as THREE.Mesh;
+        const g = src.geometry.clone();
+        src.updateMatrixWorld(true);
+        g.applyMatrix4(src.matrixWorld);
+        ensureGeometryAttributes(g);
+        const origMat = Array.isArray(src.material)
+          ? src.material.map((mat) => mat.clone())
+          : src.material
+            ? src.material.clone()
+            : new THREE.MeshPhysicalMaterial({ color: 0xc4cdd5, roughness: 0.4 });
+        const m = new THREE.Mesh(g, origMat);
+        m.userData.originalMaterial = Array.isArray(origMat)
+          ? origMat.map((mat) => mat.clone())
+          : origMat.clone();
+        m.name = src.name || `FBX_Parca_${idx++}`;
+        group.add(m);
+      }
+    });
+    if (group.children.length === 0) {
+      throw new Error('FBX dosyası içinde 3B ağ geometrisi bulunamadı.');
+    }
+    const stats = computeGroupStats(group, file.name, 'FBX', fileSizeStr);
+    return { group, stats };
+  }
+
+  if (ext === '3ds') {
+    const loader = new TDSLoader();
+    const tdsGroup = loader.parse(buffer, '');
+    const group = new THREE.Group();
+    let idx = 1;
+    tdsGroup.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const src = child as THREE.Mesh;
+        const g = src.geometry.clone();
+        src.updateMatrixWorld(true);
+        g.applyMatrix4(src.matrixWorld);
+        ensureGeometryAttributes(g);
+        const origMat = Array.isArray(src.material)
+          ? src.material.map((mat) => mat.clone())
+          : src.material
+            ? src.material.clone()
+            : new THREE.MeshPhysicalMaterial({ color: 0x94a3b8, roughness: 0.3 });
+        const m = new THREE.Mesh(g, origMat);
+        m.userData.originalMaterial = Array.isArray(origMat)
+          ? origMat.map((mat) => mat.clone())
+          : origMat.clone();
+        m.name = src.name || `3DS_Parca_${idx++}`;
+        group.add(m);
+      }
+    });
+    if (group.children.length === 0) {
+      throw new Error('3DS dosyası içinde 3B nesne bulunamadı.');
+    }
+    const stats = computeGroupStats(group, file.name, '3DS', fileSizeStr);
+    return { group, stats };
+  }
+
+  if (ext === 'dae') {
+    const text = new TextDecoder('utf-8').decode(buffer);
+    const loader = new ColladaLoader();
+    const collada = loader.parse(text, '');
+    if (!collada || !collada.scene) {
+      throw new Error('DAE (Collada) dosyası içinde geçerli bir 3B sahne bulunamadı.');
+    }
+    const group = new THREE.Group();
+    let idx = 1;
+    collada.scene.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const src = child as THREE.Mesh;
+        const g = src.geometry.clone();
+        src.updateMatrixWorld(true);
+        g.applyMatrix4(src.matrixWorld);
+        ensureGeometryAttributes(g);
+        const origMat = Array.isArray(src.material)
+          ? src.material.map((mat) => mat.clone())
+          : src.material
+            ? src.material.clone()
+            : new THREE.MeshPhysicalMaterial({ color: 0xd1d5db, roughness: 0.35 });
+        const m = new THREE.Mesh(g, origMat);
+        m.userData.originalMaterial = Array.isArray(origMat)
+          ? origMat.map((mat) => mat.clone())
+          : origMat.clone();
+        m.name = src.name || `DAE_Parca_${idx++}`;
+        group.add(m);
+      }
+    });
+    if (group.children.length === 0) {
+      throw new Error('DAE (Collada) dosyası içinde 3B geometri bulunamadı.');
+    }
+    const stats = computeGroupStats(group, file.name, 'DAE', fileSizeStr);
+    return { group, stats };
+  }
+
   throw new Error(
-    `Desteklenmeyen dosya uzantısı (.${ext}). Lütfen .blend, .stl, .obj veya .glb dosyası yükleyin.`
+    `Desteklenmeyen dosya formatı (.${ext}). Desteklenen formatlar: .blend, .blend1, .stl, .obj, .glb, .gltf, .ply, .fbx, .3ds, .dae`
   );
 }

@@ -65,7 +65,7 @@ export interface SubMeshInfo {
 
 export interface ModelStats {
   fileName: string;
-  fileFormat: 'BLEND' | 'STL' | 'OBJ' | 'GLB' | 'PRESET';
+  fileFormat: 'BLEND' | 'STL' | 'OBJ' | 'GLB' | 'PLY' | 'FBX' | '3DS' | 'DAE' | 'PRESET';
   fileSize: string;
   blenderVersion?: string;
   meshCount: number;

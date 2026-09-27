@@ -69,8 +69,8 @@ export const FileAndScenePanel: React.FC<FileAndScenePanelProps> = ({
           <h2 className="text-sm font-semibold text-white tracking-tight">
             Model İçe Aktar
           </h2>
-          <span className="text-xs text-slate-400">
-            .blend · .blend1 · .stl · .obj · .glb
+          <span className="text-[11px] text-slate-400">
+            BLEND · STL · OBJ · GLB · PLY · FBX · 3DS · DAE
           </span>
         </div>
 
@@ -91,10 +91,10 @@ export const FileAndScenePanel: React.FC<FileAndScenePanelProps> = ({
             <FileUp className="w-4 h-4" />
           </div>
           <span className="text-xs font-semibold text-white">
-            .BLEND veya .STL Dosyası Seçin
+            3B Model Dosyası Seçin
           </span>
           <span className="text-[11px] text-slate-400 mt-1">
-            veya 3B sahnenin üzerine sürükleyip bırakın
+            .blend, .stl, .obj, .glb, .ply, .fbx, .3ds veya .dae
           </span>
         </button>
 

@@ -632,8 +632,8 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
         ))}
       </div>
 
-      {/* Bottom Floating Viewport Quick Toolbar (positioned above mobile tab bar on small screens) */}
-      <div className="absolute bottom-20 lg:bottom-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-2 py-1.5 rounded-xl bg-black/65 backdrop-blur-md border border-white/10 shadow-xl max-w-[calc(100vw-24px)] overflow-x-auto no-scrollbar">
+      {/* Bottom Floating Viewport Quick Toolbar (positioned inside main flex area above bottom nav) */}
+      <div className="absolute bottom-3 lg:bottom-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-2 py-1.5 rounded-xl bg-black/65 backdrop-blur-md border border-white/10 shadow-xl max-w-[calc(100vw-24px)] overflow-x-auto no-scrollbar">
         <button
           type="button"
           onClick={() => onUpdateMaterial({ wireframe: !materialSettings.wireframe })}
@@ -750,10 +750,10 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
         <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-950/80 backdrop-blur-md border-2 border-dashed border-amber-400 m-4 rounded-2xl pointer-events-none">
           <Upload className="w-12 h-12 text-amber-400 mb-3 animate-bounce" />
           <p className="text-lg font-display font-semibold text-white">
-            .BLEND veya .STL Dosyasını Sahneye Bırakın
+            3B Model Dosyasını Sahneye Bırakın
           </p>
           <p className="text-xs text-slate-300 mt-1">
-            Gerçek zamanlı 3B inceleme ve .USDZ dönüşümü için modeliniz anında yüklenecek
+            .blend, .stl, .obj, .glb, .ply, .fbx, .3ds ve .dae formatları desteklenir
           </p>
         </div>
       )}
