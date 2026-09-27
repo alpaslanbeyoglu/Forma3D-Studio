@@ -12,10 +12,48 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Syne:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #0B0D11;
+        color: #F1F5F9;
+      }
+      #initial-loader {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background-color: #0B0D11;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        z-index: 9999;
+      }
+      .loader-spinner {
+        width: 32px;
+        height: 32px;
+        border: 3px solid rgba(245, 158, 11, 0.2);
+        border-top-color: #F59E0B;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin-bottom: 16px;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
   </head>
   <body class="bg-[#0B0D11] text-[#F1F5F9] antialiased selection:bg-amber-500/30 selection:text-amber-200 overflow-hidden">
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <div id="root">
+      <div id="initial-loader">
+        <div class="loader-spinner"></div>
+        <div style="font-size: 14px; font-weight: 600; color: #E2E8F0; letter-spacing: 0.5px;">Forma3D Studio</div>
+        <div style="font-size: 11px; color: #64748B; margin-top: 4px;">3B Sahne Yükleniyor...</div>
+      </div>
+    </div>
+    <script type="module" src="./src/main.tsx"></script>
   </body>
 </html>
-
