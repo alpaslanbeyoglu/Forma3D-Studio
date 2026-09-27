@@ -1,0 +1,508 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import * as THREE from 'three';
+import {
+  Camera,
+  Download,
+  AlertCircle,
+  X,
+  Palette,
+  Sun,
+  Layers,
+  Sparkles,
+} from 'lucide-react';
+import {
+  LightingSettings,
+  MaterialSettings,
+  ModelStats,
+  TransformSettings,
+} from './types/studio';
+import {
+  DEFAULT_LIGHTING_SETTINGS,
+  DEFAULT_MATERIAL_SETTINGS,
+  LIGHTING_PRESETS,
+  MATERIAL_PRESETS,
+} from './utils/studioPresets';
+import { SAMPLE_MODELS } from './utils/sampleModels';
+import { computeGroupStats, load3DFile } from './utils/fileLoader';
+import { createSampleBlendFileBuffer, parseBlendFile } from './utils/blendParser';
+import { Viewport3D } from './components/Viewport3D';
+import { FileAndScenePanel } from './components/FileAndScenePanel';
+import { MaterialAndLightingInspector } from './components/MaterialAndLightingInspector';
+import { UsdzExportModal } from './components/UsdzExportModal';
+
+const DEFAULT_TRANSFORM: TransformSettings = {
+  scale: 1.0,
+  rotationX: 0,
+  rotationY: 0,
+  rotationZ: 0,
+  alignToFloor: true,
+};
+
+type MobileSheetType = 'none' | 'file' | 'material' | 'lighting';
+
+export default function App() {
+  const [modelGroup, setModelGroup] = useState<THREE.Group | null>(null);
+  const [activeSampleId, setActiveSampleId] = useState<string | null>('turbine_stl');
+  const [inspectorTab, setInspectorTab] = useState<'material' | 'lighting'>('material');
+  const [mobileSheet, setMobileSheet] = useState<MobileSheetType>('none');
+  const [materialSettings, setMaterialSettings] = useState<MaterialSettings>(
+    DEFAULT_MATERIAL_SETTINGS
+  );
+  const [lightingSettings, setLightingSettings] = useState<LightingSettings>(
+    DEFAULT_LIGHTING_SETTINGS
+  );
+  const [transformSettings, setTransformSettings] =
+    useState<TransformSettings>(DEFAULT_TRANSFORM);
+
+  const [modelStats, setModelStats] = useState<ModelStats>({
+    fileName: 'aero_turbin_carki.stl',
+    fileFormat: 'STL',
+    fileSize: '428.4 KB',
+    meshCount: 1,
+    vertexCount: 0,
+    triangleCount: 0,
+    dimensions: { x: 3.8, y: 1.4, z: 3.8 },
+    subMeshes: [],
+  });
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('Model hazırlanıyor...');
+  const [errorBanner, setErrorBanner] = useState<string | null>(null);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+
+  const captureScreenshotRef = useRef<(() => void) | null>(null);
+
+  const handleSelectSample = useCallback((sampleId: string) => {
+    const sample = SAMPLE_MODELS.find((s) => s.id === sampleId);
+    if (!sample) return;
+
+    setErrorBanner(null);
+    setActiveSampleId(sampleId);
+    const group = sample.buildGroup();
+    const ext = sample.formatBadge.toLowerCase();
+    const stats = computeGroupStats(
+      group,
+      `${sample.id}.${ext}`,
+      sample.formatBadge,
+      sample.formatBadge === 'BLEND' ? '612.0 KB' : '428.4 KB',
+      sample.formatBadge === 'BLEND' ? '4.0' : undefined
+    );
+    setModelGroup(group);
+    setModelStats(stats);
+    setTransformSettings(DEFAULT_TRANSFORM);
+    setMaterialSettings((prev) => ({
+      ...prev,
+      useOriginalMaterials: true,
+      presetId: 'original',
+    }));
+  }, []);
+
+  // Load initial sample model on mount
+  useEffect(() => {
+    handleSelectSample('turbine_stl');
+  }, [handleSelectSample]);
+
+  // Handle user uploading a .blend, .stl, .obj, or .glb file
+  const handleFileLoad = useCallback(async (file: File) => {
+    setIsLoading(true);
+    setErrorBanner(null);
+    const ext = file.name.split('.').pop()?.toUpperCase() || '';
+    setLoadingMessage(
+      ext === 'BLEND'
+        ? `${file.name} SDNA ikili blokları ve materyalleri çözümleniyor...`
+        : `${file.name} 3B geometri ve materyaller sahneye aktarılıyor...`
+    );
+
+    try {
+      const { group, stats } = await load3DFile(file);
+      setActiveSampleId(null);
+      setModelGroup(group);
+      setModelStats(stats);
+      setTransformSettings(DEFAULT_TRANSFORM);
+      setMaterialSettings((prev) => ({
+        ...prev,
+        useOriginalMaterials: true,
+        presetId: 'original',
+      }));
+    } catch (err) {
+      setErrorBanner(
+        err instanceof Error
+          ? err.message
+          : 'Dosya okunurken bir hata oluştu. Lütfen geçerli bir .blend veya .stl dosyası seçin.'
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Live binary .blend parser verification test triggered from Top Bar
+  const handleRunLiveBlendBinaryTest = async () => {
+    setIsLoading(true);
+    setErrorBanner(null);
+    setLoadingMessage('Gerçek ikili .blend (Blender 4.0 SDNA) dosyası oluşturulup ayrıştırılıyor...');
+    try {
+      const geo = new THREE.TorusKnotGeometry(1.15, 0.34, 180, 32, 3, 4);
+      const blendBuffer = createSampleBlendFileBuffer(geo, 'Canli_Blender4_SDNA_Mesh');
+      const parsed = await parseBlendFile(blendBuffer);
+      const stats = computeGroupStats(
+        parsed.group,
+        'canli_test_modeli.blend',
+        'BLEND',
+        `${(blendBuffer.byteLength / 1024).toFixed(1)} KB`,
+        parsed.blenderVersion
+      );
+      setActiveSampleId(null);
+      setModelGroup(parsed.group);
+      setModelStats(stats);
+      setTransformSettings(DEFAULT_TRANSFORM);
+      setMaterialSettings((prev) => ({
+        ...prev,
+        useOriginalMaterials: true,
+        presetId: 'original',
+      }));
+    } catch (err) {
+      setErrorBanner(
+        err instanceof Error ? err.message : '.blend testi sırasında hata oluştu.'
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleToggleSubMeshVisibility = (subMeshId: string) => {
+    if (!modelGroup) return;
+    modelGroup.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh && child.uuid === subMeshId) {
+        child.visible = !child.visible;
+      }
+    });
+    setModelStats((prev) => ({
+      ...prev,
+      subMeshes: prev.subMeshes.map((sm) =>
+        sm.id === subMeshId ? { ...sm, visible: !sm.visible } : sm
+      ),
+    }));
+  };
+
+  const handleUpdateMaterial = (partial: Partial<MaterialSettings>) => {
+    setMaterialSettings((prev) => {
+      // Only keep useOriginalMaterials if explicitly set to true or if only viewport display flags (wireframe, flatShading, doubleSided) changed
+      const keys = Object.keys(partial);
+      const isViewportFlagOnly = keys.every((k) =>
+        ['wireframe', 'flatShading', 'doubleSided'].includes(k)
+      );
+      const nextUseOriginal =
+        partial.useOriginalMaterials !== undefined
+          ? partial.useOriginalMaterials
+          : isViewportFlagOnly
+            ? prev.useOriginalMaterials
+            : false;
+
+      return {
+        ...prev,
+        ...partial,
+        useOriginalMaterials: nextUseOriginal,
+      };
+    });
+  };
+
+  const handleApplyMaterialPreset = (presetId: string) => {
+    const found = MATERIAL_PRESETS.find((p) => p.id === presetId);
+    if (!found) return;
+    setMaterialSettings((prev) => ({
+      ...prev,
+      useOriginalMaterials: false,
+      presetId: found.id,
+      ...found.settings,
+    }));
+  };
+
+  const handleUpdateLighting = (partial: Partial<LightingSettings>) => {
+    setLightingSettings((prev) => ({ ...prev, ...partial }));
+  };
+
+  const handleApplyLightingPreset = (presetId: string) => {
+    const found = LIGHTING_PRESETS.find((p) => p.id === presetId);
+    if (!found) return;
+    setLightingSettings((prev) => ({
+      ...prev,
+      presetId: found.id,
+      ...found.settings,
+    }));
+  };
+
+  const handleUpdateTransform = (partial: Partial<TransformSettings>) => {
+    setTransformSettings((prev) => ({ ...prev, ...partial }));
+  };
+
+  const openMobileTab = (tab: MobileSheetType) => {
+    if (tab === 'material' || tab === 'lighting') {
+      setInspectorTab(tab);
+    }
+    setMobileSheet((current) => (current === tab ? 'none' : tab));
+  };
+
+  return (
+    <div className="flex flex-col w-screen h-screen overflow-hidden bg-[#0B0D11] text-[#F1F5F9]">
+      {/* Top Bar: Responsive header with Wordmark, Desktop Nav, and Action Buttons */}
+      <header className="h-14 shrink-0 flex items-center justify-between px-3 sm:px-6 bg-[#12151C] border-b border-white/[0.07] z-20">
+        {/* Zone 1: Single text element wordmark */}
+        <div className="flex items-center gap-2">
+          <a
+            href="#studio"
+            onClick={(e) => {
+              e.preventDefault();
+              handleSelectSample('turbine_stl');
+            }}
+            className="text-base sm:text-lg font-display font-bold tracking-tight text-white whitespace-nowrap"
+          >
+            Forma3D Studio
+          </a>
+          <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            BLEND · STL · USDZ
+          </span>
+        </div>
+
+        {/* Zone 2: Desktop clean text navigation links */}
+        <nav className="hidden md:flex items-center gap-6 text-xs font-medium text-slate-300">
+          <button
+            type="button"
+            onClick={() => handleSelectSample('turbine_stl')}
+            className="hover:text-white hover:underline underline-offset-4 transition-colors cursor-pointer whitespace-nowrap"
+          >
+            CAD .STL Örneği
+          </button>
+          <button
+            type="button"
+            onClick={handleRunLiveBlendBinaryTest}
+            className="hover:text-white hover:underline underline-offset-4 transition-colors cursor-pointer whitespace-nowrap"
+          >
+            Canlı .BLEND Ayrıştırıcı
+          </button>
+          <button
+            type="button"
+            onClick={() => setInspectorTab('material')}
+            className={`hover:text-white hover:underline underline-offset-4 transition-colors cursor-pointer whitespace-nowrap ${
+              inspectorTab === 'material' ? 'text-amber-400 font-semibold' : ''
+            }`}
+          >
+            Malzeme Laboratuvarı
+          </button>
+          <button
+            type="button"
+            onClick={() => setInspectorTab('lighting')}
+            className={`hover:text-white hover:underline underline-offset-4 transition-colors cursor-pointer whitespace-nowrap ${
+              inspectorTab === 'lighting' ? 'text-amber-400 font-semibold' : ''
+            }`}
+          >
+            Işık Stüdyosu
+          </button>
+        </nav>
+
+        {/* Zone 3: Primary Actions */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => captureScreenshotRef.current?.()}
+            className="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-xs font-medium text-slate-200 transition-colors cursor-pointer whitespace-nowrap"
+            title="Sahnenin PNG Render Görüntüsünü İndir"
+          >
+            <Camera className="w-3.5 h-3.5 text-slate-300" />
+            <span className="hidden sm:inline">Render Al</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsExportModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap shadow-sm"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>.USDZ Dışa Aktar</span>
+          </button>
+        </div>
+      </header>
+
+      {/* Main Studio Workspace: 3 Columns on Desktop, Full-Screen Viewport with Bottom Navigation on Mobile */}
+      <div className="flex-1 flex min-h-0 relative overflow-hidden">
+        {/* Left Desktop Sidebar: File Upload (.blend / .stl), Sample Models, Telemetry & Sub-meshes */}
+        <div className="hidden lg:flex shrink-0 h-full">
+          <FileAndScenePanel
+            modelStats={modelStats}
+            activeSampleId={activeSampleId}
+            transformSettings={transformSettings}
+            onSelectFile={handleFileLoad}
+            onSelectSample={handleSelectSample}
+            onToggleSubMeshVisibility={handleToggleSubMeshVisibility}
+            onUpdateTransform={handleUpdateTransform}
+            onResetTransform={() => setTransformSettings(DEFAULT_TRANSFORM)}
+          />
+        </div>
+
+        {/* Center Full 3D WebGL Viewport (Always 100% full screen on mobile & tablet) */}
+        <main className="flex-1 relative min-w-0 h-full">
+          {errorBanner && (
+            <div className="absolute top-14 sm:top-16 left-1/2 -translate-x-1/2 z-30 max-w-lg w-full px-4">
+              <div className="flex items-start justify-between gap-3 p-3.5 rounded-xl bg-red-950/90 backdrop-blur-md border border-red-500/40 text-red-200 text-xs shadow-xl">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                  <span>{errorBanner}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setErrorBanner(null)}
+                  className="text-red-300 hover:text-white cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          <Viewport3D
+            modelGroup={modelGroup}
+            materialSettings={materialSettings}
+            lightingSettings={lightingSettings}
+            transformSettings={transformSettings}
+            onUpdateLighting={handleUpdateLighting}
+            onUpdateMaterial={handleUpdateMaterial}
+            onFileDrop={handleFileLoad}
+            isLoading={isLoading}
+            loadingMessage={loadingMessage}
+            captureScreenshotRef={captureScreenshotRef}
+          />
+        </main>
+
+        {/* Right Desktop Sidebar: PBR Material Studio & 3-Point Lighting Inspector */}
+        <div className="hidden lg:flex shrink-0 h-full">
+          <MaterialAndLightingInspector
+            activeTab={inspectorTab}
+            onTabChange={setInspectorTab}
+            materialSettings={materialSettings}
+            lightingSettings={lightingSettings}
+            onUpdateMaterial={handleUpdateMaterial}
+            onApplyMaterialPreset={handleApplyMaterialPreset}
+            onResetMaterial={() => setMaterialSettings(DEFAULT_MATERIAL_SETTINGS)}
+            onUpdateLighting={handleUpdateLighting}
+            onApplyLightingPreset={handleApplyLightingPreset}
+            onResetLighting={() => setLightingSettings(DEFAULT_LIGHTING_SETTINGS)}
+          />
+        </div>
+
+        {/* Mobile Slide-Up Drawer / Bottom Sheet */}
+        {mobileSheet !== 'none' && (
+          <div className="lg:hidden absolute inset-0 z-40 flex flex-col justify-end">
+            {/* Backdrop Overlay */}
+            <div
+              className="absolute inset-0 bg-black/70 backdrop-blur-xs transition-opacity"
+              onClick={() => setMobileSheet('none')}
+            />
+
+            {/* Sheet Container */}
+            <div className="relative z-10 w-full max-h-[82vh] h-[82vh] bg-[#12151C] rounded-t-2xl border-t border-white/10 shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-200">
+              {/* Drag Handle */}
+              <div className="w-full flex items-center justify-center pt-2.5 pb-1 bg-[#12151C]">
+                <div className="w-10 h-1 rounded-full bg-white/20" />
+              </div>
+
+              {/* Sheet Content */}
+              <div className="flex-1 overflow-hidden">
+                {mobileSheet === 'file' ? (
+                  <FileAndScenePanel
+                    modelStats={modelStats}
+                    activeSampleId={activeSampleId}
+                    transformSettings={transformSettings}
+                    onSelectFile={(file) => {
+                      handleFileLoad(file);
+                      setMobileSheet('none');
+                    }}
+                    onSelectSample={(sampleId) => {
+                      handleSelectSample(sampleId);
+                      setMobileSheet('none');
+                    }}
+                    onToggleSubMeshVisibility={handleToggleSubMeshVisibility}
+                    onUpdateTransform={handleUpdateTransform}
+                    onResetTransform={() => setTransformSettings(DEFAULT_TRANSFORM)}
+                    onClose={() => setMobileSheet('none')}
+                  />
+                ) : (
+                  <MaterialAndLightingInspector
+                    activeTab={inspectorTab}
+                    onTabChange={setInspectorTab}
+                    materialSettings={materialSettings}
+                    lightingSettings={lightingSettings}
+                    onUpdateMaterial={handleUpdateMaterial}
+                    onApplyMaterialPreset={handleApplyMaterialPreset}
+                    onResetMaterial={() => setMaterialSettings(DEFAULT_MATERIAL_SETTINGS)}
+                    onUpdateLighting={handleUpdateLighting}
+                    onApplyLightingPreset={handleApplyLightingPreset}
+                    onResetLighting={() => setLightingSettings(DEFAULT_LIGHTING_SETTINGS)}
+                    onClose={() => setMobileSheet('none')}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Mobile Studio Bottom Navigation Bar */}
+      <nav className="lg:hidden shrink-0 h-16 bg-[#12151C]/95 backdrop-blur-xl border-t border-white/[0.08] flex items-center justify-around px-2 z-30 pb-[env(safe-area-inset-bottom)]">
+        <button
+          type="button"
+          onClick={() => openMobileTab('file')}
+          className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 text-[11px] font-medium transition-colors cursor-pointer ${
+            mobileSheet === 'file' ? 'text-amber-400 font-semibold' : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Layers className="w-4 h-4" />
+          <span>Model</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => openMobileTab('material')}
+          className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 text-[11px] font-medium transition-colors cursor-pointer ${
+            mobileSheet === 'material' || (mobileSheet !== 'none' && inspectorTab === 'material')
+              ? 'text-amber-400 font-semibold'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Palette className="w-4 h-4" />
+          <span>Malzeme</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => openMobileTab('lighting')}
+          className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 text-[11px] font-medium transition-colors cursor-pointer ${
+            mobileSheet === 'lighting' || (mobileSheet !== 'none' && inspectorTab === 'lighting')
+              ? 'text-amber-400 font-semibold'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Sun className="w-4 h-4" />
+          <span>Işık</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setIsExportModalOpen(true)}
+          className="flex flex-col items-center justify-center gap-1 flex-1 py-1 text-[11px] font-medium text-amber-400 hover:text-amber-300 transition-colors cursor-pointer"
+        >
+          <Download className="w-4 h-4" />
+          <span className="font-semibold">.USDZ</span>
+        </button>
+      </nav>
+
+      {/* USDZ Export Configuration Modal */}
+      <UsdzExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        modelGroup={modelGroup}
+        materialSettings={materialSettings}
+        modelStats={modelStats}
+      />
+    </div>
+  );
+}
+

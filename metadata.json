@@ -1,0 +1,6 @@
+{
+  "name": "Forma3D Studio — BLEND & STL'den USDZ'ye 3B Atölye",
+  "description": ".blend ve .stl dosyalarını gerçek zamanlı 3B sahnede inceleyin, fiziksel PBR malzeme ve üç noktalı stüdyo ışıklarını özelleştirip tek tıkla Apple AR uyumlu .usdz formatında dışa aktarın.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
