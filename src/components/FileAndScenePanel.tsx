@@ -50,17 +50,17 @@ export const FileAndScenePanel: React.FC<FileAndScenePanelProps> = ({
   };
 
   return (
-    <aside className="w-full lg:w-80 shrink-0 h-full bg-[#12151C] lg:border-r border-white/[0.07] flex flex-col overflow-y-auto">
+    <aside className="w-full lg:w-80 shrink-0 h-full bg-[#12151C] lg:border-r border-white/[0.07] flex flex-col overflow-y-auto touch-pan-y">
       {/* Mobile Drawer Header with Close Button */}
       {onClose && (
-        <div className="lg:hidden flex items-center justify-between px-5 py-3.5 border-b border-white/[0.07] bg-[#0E1017]">
+        <div className="lg:hidden flex items-center justify-between px-4 py-2.5 border-b border-white/[0.07] bg-[#0E1017] sticky top-0 z-10">
           <span className="text-xs font-semibold text-slate-200">
-            {t(language, 'Model & Dosya Gezgini', 'Model & Scene Explorer')}
+            {t(language, 'Model & Sahne Gezgini', 'Model & Scene Explorer')}
           </span>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            className="min-h-[34px] min-w-[34px] flex items-center justify-center rounded-lg text-slate-300 hover:text-white bg-white/[0.05] hover:bg-white/10 transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>

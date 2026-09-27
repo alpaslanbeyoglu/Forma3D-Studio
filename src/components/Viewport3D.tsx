@@ -88,6 +88,15 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [activeCameraPreset, setActiveCameraPreset] = useState<CameraPresetView>('perspective');
 
+  const getPortraitDistanceFactor = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return 1;
+    const w = container.clientWidth || window.innerWidth || 430;
+    const h = container.clientHeight || window.innerHeight || 740;
+    const aspect = w / Math.max(h, 1);
+    return aspect < 1 ? Math.min(1.55, 1 / Math.pow(Math.max(aspect, 0.35), 0.48)) : 1;
+  }, []);
+
   // Initialize Three.js WebGL scene
   useEffect(() => {
     const container = containerRef.current;
@@ -95,14 +104,17 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
 
     const width = container.clientWidth || 960;
     const height = container.clientHeight || 640;
+    const initAspect = width / Math.max(height, 1);
+    const initDf =
+      initAspect < 1 ? Math.min(1.55, 1 / Math.pow(Math.max(initAspect, 0.35), 0.48)) : 1;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(lightingSettings.backgroundColor);
     scene.fog = new THREE.FogExp2(lightingSettings.backgroundColor, 0.028);
     sceneRef.current = scene;
 
-    const camera = new THREE.PerspectiveCamera(42, width / height, 0.05, 250);
-    camera.position.set(3.8, 2.6, 4.4);
+    const camera = new THREE.PerspectiveCamera(42, initAspect, 0.05, 250);
+    camera.position.set(3.8 * initDf, 2.6 * initDf, 4.4 * initDf);
     cameraRef.current = camera;
 
     let renderer: THREE.WebGLRenderer;
@@ -561,21 +573,25 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
     }
   }, [lightingSettings]);
 
-  const setCameraPreset = useCallback((preset: CameraPresetView) => {
-    setActiveCameraPreset(preset);
-    targetLookAtRef.current = new THREE.Vector3(0, 0, 0);
-    if (preset === 'perspective') {
-      targetCamPosRef.current = new THREE.Vector3(3.8, 2.6, 4.4);
-    } else if (preset === 'front') {
-      targetCamPosRef.current = new THREE.Vector3(0, 0.2, 5.6);
-    } else if (preset === 'right') {
-      targetCamPosRef.current = new THREE.Vector3(5.6, 0.2, 0);
-    } else if (preset === 'top') {
-      targetCamPosRef.current = new THREE.Vector3(0, 6.2, 0.01);
-    } else if (preset === 'iso') {
-      targetCamPosRef.current = new THREE.Vector3(4.0, 4.0, 4.0);
-    }
-  }, []);
+  const setCameraPreset = useCallback(
+    (preset: CameraPresetView) => {
+      setActiveCameraPreset(preset);
+      const df = getPortraitDistanceFactor();
+      targetLookAtRef.current = new THREE.Vector3(0, 0, 0);
+      if (preset === 'perspective') {
+        targetCamPosRef.current = new THREE.Vector3(3.8 * df, 2.6 * df, 4.4 * df);
+      } else if (preset === 'front') {
+        targetCamPosRef.current = new THREE.Vector3(0, 0.2, 5.6 * df);
+      } else if (preset === 'right') {
+        targetCamPosRef.current = new THREE.Vector3(5.6 * df, 0.2, 0);
+      } else if (preset === 'top') {
+        targetCamPosRef.current = new THREE.Vector3(0, 6.2 * df, 0.01);
+      } else if (preset === 'iso') {
+        targetCamPosRef.current = new THREE.Vector3(4.0 * df, 4.0 * df, 4.0 * df);
+      }
+    },
+    [getPortraitDistanceFactor]
+  );
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -610,36 +626,105 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
       <div ref={containerRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
 
       {/* Top-Left Camera Angle Switcher HUD */}
-      <div className="absolute top-3 left-3 md:top-4 md:left-4 z-10 flex items-center gap-1 p-1 rounded-lg bg-black/55 backdrop-blur-md border border-white/10 max-w-[calc(100vw-24px)] overflow-x-auto no-scrollbar">
+      <div className="absolute top-2.5 left-2.5 md:top-4 md:left-4 z-10 flex items-center gap-0.5 sm:gap-1 p-1 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 max-w-[calc(100vw-76px)] overflow-x-auto no-scrollbar">
         {(
           [
             {
               id: 'perspective',
               label: t(language, 'Perspektif', 'Perspective'),
+              shortLabel: t(language, 'Persp', 'Persp'),
             },
-            { id: 'front', label: t(language, 'Ön', 'Front') },
-            { id: 'right', label: t(language, 'Sağ', 'Right') },
-            { id: 'top', label: t(language, 'Üst', 'Top') },
-            { id: 'iso', label: t(language, 'İzometrik', 'Isometric') },
-          ] as { id: CameraPresetView; label: string }[]
+            {
+              id: 'front',
+              label: t(language, 'Ön', 'Front'),
+              shortLabel: t(language, 'Ön', 'Front'),
+            },
+            {
+              id: 'right',
+              label: t(language, 'Sağ', 'Right'),
+              shortLabel: t(language, 'Sağ', 'Right'),
+            },
+            {
+              id: 'top',
+              label: t(language, 'Üst', 'Top'),
+              shortLabel: t(language, 'Üst', 'Top'),
+            },
+            {
+              id: 'iso',
+              label: t(language, 'İzometrik', 'Isometric'),
+              shortLabel: t(language, 'İzo', 'Iso'),
+            },
+          ] as { id: CameraPresetView; label: string; shortLabel: string }[]
         ).map((cam) => (
           <button
             key={cam.id}
             type="button"
             onClick={() => setCameraPreset(cam.id)}
-            className={`min-h-[34px] px-2.5 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap cursor-pointer ${
+            className={`min-h-[34px] px-2 sm:px-2.5 py-1 text-[11px] sm:text-xs font-medium rounded-lg transition-colors whitespace-nowrap cursor-pointer ${
               activeCameraPreset === cam.id
                 ? 'bg-amber-500 text-slate-950 font-semibold'
                 : 'text-slate-300 hover:text-white hover:bg-white/5'
             }`}
           >
-            {cam.label}
+            <span className="sm:hidden">{cam.shortLabel}</span>
+            <span className="hidden sm:inline">{cam.label}</span>
           </button>
         ))}
       </div>
 
-      {/* Bottom Floating Viewport Quick Toolbar (positioned inside main flex area above bottom nav) */}
-      <div className="absolute bottom-3 lg:bottom-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-2 py-1.5 rounded-xl bg-black/65 backdrop-blur-md border border-white/10 shadow-xl max-w-[calc(100vw-24px)] overflow-x-auto no-scrollbar">
+      {/* Mobile Right-Edge Vertical Quick-Toggle Dock (Prevents bottom bar stacking on iPhone) */}
+      <div className="lg:hidden absolute top-2.5 right-2.5 z-10 flex flex-col items-center gap-1 p-1 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 shadow-xl">
+        <button
+          type="button"
+          onClick={() => onUpdateLighting({ autoRotate: !lightingSettings.autoRotate })}
+          className={`w-11 h-10 flex flex-col items-center justify-center gap-0.5 rounded-lg text-[10px] font-medium transition-colors cursor-pointer ${
+            lightingSettings.autoRotate
+              ? 'bg-amber-500/25 text-amber-300 border border-amber-400/40'
+              : 'text-slate-300 hover:text-white'
+          }`}
+        >
+          <RotateCcw className="w-3.5 h-3.5 shrink-0" />
+          <span>360°</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onUpdateMaterial({ wireframe: !materialSettings.wireframe })}
+          className={`w-11 h-10 flex flex-col items-center justify-center gap-0.5 rounded-lg text-[10px] font-medium transition-colors cursor-pointer ${
+            materialSettings.wireframe
+              ? 'bg-amber-500/25 text-amber-300 border border-amber-400/40'
+              : 'text-slate-300 hover:text-white'
+          }`}
+        >
+          <Box className="w-3.5 h-3.5 shrink-0" />
+          <span>{t(language, 'Tel', 'Wire')}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onUpdateLighting({ showGrid: !lightingSettings.showGrid })}
+          className={`w-11 h-10 flex flex-col items-center justify-center gap-0.5 rounded-lg text-[10px] font-medium transition-colors cursor-pointer ${
+            lightingSettings.showGrid
+              ? 'bg-white/15 text-white'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <Grid className="w-3.5 h-3.5 shrink-0" />
+          <span>{t(language, 'Izgara', 'Grid')}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setCameraPreset('perspective')}
+          className="w-11 h-10 flex flex-col items-center justify-center gap-0.5 rounded-lg text-[10px] font-medium text-slate-300 hover:text-white transition-colors cursor-pointer"
+        >
+          <Maximize2 className="w-3.5 h-3.5 shrink-0" />
+          <span>{t(language, 'Odak', 'Focus')}</span>
+        </button>
+      </div>
+
+      {/* Desktop Bottom Floating Viewport Quick Toolbar */}
+      <div className="hidden lg:flex absolute bottom-4 left-1/2 -translate-x-1/2 z-10 items-center gap-1.5 px-2 py-1.5 rounded-xl bg-black/65 backdrop-blur-md border border-white/10 shadow-xl">
         <button
           type="button"
           onClick={() => onUpdateMaterial({ wireframe: !materialSettings.wireframe })}
@@ -651,9 +736,7 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
           title={t(language, 'Tel Kafes (Wireframe) Görünümü', 'Wireframe View')}
         >
           <Box className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">
-            {t(language, 'Tel Kafes', 'Wireframe')}
-          </span>
+          <span>{t(language, 'Tel Kafes', 'Wireframe')}</span>
         </button>
 
         <button
@@ -691,9 +774,7 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
           title={t(language, 'Stüdyo Zemin Izgarası', 'Studio Floor Grid')}
         >
           <Grid className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">
-            {t(language, 'Izgara', 'Grid')}
-          </span>
+          <span>{t(language, 'Izgara', 'Grid')}</span>
         </button>
 
         <button
@@ -707,9 +788,7 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
           title={t(language, 'X/Y/Z Eksen Çizgileri', 'X/Y/Z Axis Lines')}
         >
           <Compass className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">
-            {t(language, 'Eksen', 'Axes')}
-          </span>
+          <span>{t(language, 'Eksen', 'Axes')}</span>
         </button>
 
         <button
@@ -725,9 +804,7 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
           title={t(language, 'Işık Kaynaklarını Sahnede Göster', 'Show Light Helpers')}
         >
           <Sun className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">
-            {t(language, 'Işıklar', 'Lights')}
-          </span>
+          <span>{t(language, 'Işıklar', 'Lights')}</span>
         </button>
 
         <button

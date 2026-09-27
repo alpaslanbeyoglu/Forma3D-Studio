@@ -10,6 +10,8 @@ import {
   Sun,
   Layers,
   Globe,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react';
 import {
   LightingSettings,
@@ -57,6 +59,7 @@ export default function App() {
   const [activeSampleId, setActiveSampleId] = useState<string | null>('turbine_stl');
   const [inspectorTab, setInspectorTab] = useState<'material' | 'lighting'>('material');
   const [mobileSheet, setMobileSheet] = useState<MobileSheetType>('none');
+  const [isMobileSheetExpanded, setIsMobileSheetExpanded] = useState(false);
   const [materialSettings, setMaterialSettings] = useState<MaterialSettings>(
     DEFAULT_MATERIAL_SETTINGS
   );
@@ -308,13 +311,19 @@ export default function App() {
     if (tab === 'material' || tab === 'lighting') {
       setInspectorTab(tab);
     }
-    setMobileSheet((current) => (current === tab ? 'none' : tab));
+    setMobileSheet((current) => {
+      if (current === tab) {
+        setIsMobileSheetExpanded(false);
+        return 'none';
+      }
+      return tab;
+    });
   };
 
   return (
     <div className="app-viewport-shell flex flex-col overflow-hidden bg-[#0B0D11] text-[#F1F5F9]">
       {/* Top Bar: Responsive header with Wordmark, Desktop Nav, and Action Buttons */}
-      <header className="h-13 sm:h-14 shrink-0 flex items-center justify-between gap-2 px-2.5 sm:px-6 bg-[#12151C] border-b border-white/[0.07] z-30">
+      <header className="ios-safe-top min-h-[50px] sm:min-h-[56px] shrink-0 flex items-center justify-between gap-2 px-3 sm:px-6 bg-[#12151C] border-b border-white/[0.07] z-30">
         {/* Zone 1: Single text element wordmark */}
         <a
           href="#studio"
@@ -368,7 +377,7 @@ export default function App() {
           <button
             type="button"
             onClick={toggleLanguage}
-            className="min-h-[36px] inline-flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] border border-white/10 text-[11px] font-semibold text-slate-200 transition-colors cursor-pointer whitespace-nowrap shrink-0"
+            className="min-h-[38px] inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-[11px] font-semibold text-slate-200 transition-colors cursor-pointer whitespace-nowrap shrink-0"
             title={t(language, 'Switch to English', 'Türkçe diline geç')}
           >
             <Globe className="w-3.5 h-3.5 text-amber-400 shrink-0" />
@@ -390,7 +399,7 @@ export default function App() {
           <button
             type="button"
             onClick={() => headerFileInputRef.current?.click()}
-            className="min-h-[36px] inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-xs font-semibold text-amber-300 transition-colors cursor-pointer whitespace-nowrap shrink-0"
+            className="hidden sm:inline-flex min-h-[38px] items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-xs font-semibold text-amber-300 transition-colors cursor-pointer whitespace-nowrap shrink-0"
             title={t(
               language,
               '.blend, .stl, .obj, .glb, .ply, .fbx, .3ds veya .dae Yükle',
@@ -404,7 +413,7 @@ export default function App() {
           <button
             type="button"
             onClick={() => captureScreenshotRef.current?.()}
-            className="min-h-[36px] inline-flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-xs font-medium text-slate-200 transition-colors cursor-pointer whitespace-nowrap shrink-0"
+            className="min-h-[38px] inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-xs font-medium text-slate-200 transition-colors cursor-pointer whitespace-nowrap shrink-0"
             title={t(
               language,
               'Sahnenin PNG Render Görüntüsünü İndir',
@@ -420,7 +429,7 @@ export default function App() {
           <button
             type="button"
             onClick={() => setIsExportModalOpen(true)}
-            className="min-h-[36px] inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap shrink-0 shadow-sm"
+            className="min-h-[38px] inline-flex items-center gap-1 sm:gap-1.5 px-3 sm:px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap shrink-0 shadow-sm"
           >
             <Download className="w-3.5 h-3.5 shrink-0" />
             <span>.USDZ</span>
@@ -428,8 +437,8 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main Studio Workspace: 3 Columns on Desktop, Full-Screen Viewport with Bottom Navigation on Mobile */}
-      <div className="flex-1 flex min-h-0 relative overflow-hidden">
+      {/* Main Studio Workspace: 3 Columns on Desktop, Split-Screen Live 3D + Studio Dock on Mobile */}
+      <div className="flex-1 flex flex-col lg:flex-row min-h-0 relative overflow-hidden">
         {/* Left Desktop Sidebar: File Upload, Sample Models, Telemetry & Sub-meshes */}
         <div className="hidden lg:flex shrink-0 h-full">
           <FileAndScenePanel
@@ -445,8 +454,8 @@ export default function App() {
           />
         </div>
 
-        {/* Center Full 3D WebGL Viewport (Always 100% full screen on mobile & tablet) */}
-        <main className="flex-1 relative min-w-0 h-full">
+        {/* Center Full 3D WebGL Viewport (Stays live and visible in top half when mobile panel is open!) */}
+        <main className="flex-1 relative min-w-0 min-h-[180px] h-full">
           {errorBanner && (
             <div className="absolute top-14 sm:top-16 left-1/2 -translate-x-1/2 z-30 max-w-lg w-full px-4">
               <div className="flex items-start justify-between gap-3 p-3.5 rounded-xl bg-red-950/90 backdrop-blur-md border border-red-500/40 text-red-200 text-xs shadow-xl">
@@ -497,81 +506,90 @@ export default function App() {
           />
         </div>
 
-        {/* Mobile Slide-Up Drawer / Bottom Sheet */}
+        {/* Mobile Split-Screen Bottom Studio Panel (Leaves 3D Model visible in top half!) */}
         {mobileSheet !== 'none' && (
-          <div className="lg:hidden absolute inset-0 z-40 flex flex-col justify-end">
-            {/* Backdrop Overlay */}
-            <div
-              className="absolute inset-0 bg-black/70 backdrop-blur-xs transition-opacity"
-              onClick={() => setMobileSheet('none')}
-            />
+          <div
+            className={`lg:hidden w-full shrink-0 bg-[#12151C] rounded-t-2xl border-t border-white/15 shadow-2xl flex flex-col overflow-hidden z-20 transition-[height] duration-200 ${
+              isMobileSheetExpanded ? 'h-[68dvh]' : 'h-[45dvh]'
+            }`}
+          >
+            {/* Interactive Expand / Collapse Handle Bar */}
+            <button
+              type="button"
+              onClick={() => setIsMobileSheetExpanded((prev) => !prev)}
+              className="w-full flex items-center justify-center gap-1.5 py-1.5 bg-[#0E1017] border-b border-white/[0.05] text-[10px] font-medium text-slate-400 hover:text-white cursor-pointer shrink-0"
+            >
+              <div className="w-9 h-1 rounded-full bg-white/25" />
+              {isMobileSheetExpanded ? (
+                <ChevronDown className="w-3.5 h-3.5 text-amber-400" />
+              ) : (
+                <ChevronUp className="w-3.5 h-3.5 text-amber-400" />
+              )}
+            </button>
 
-            {/* Sheet Container */}
-            <div className="relative z-10 w-full max-h-[82vh] h-[82vh] bg-[#12151C] rounded-t-2xl border-t border-white/10 shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-200">
-              {/* Drag Handle */}
-              <div className="w-full flex items-center justify-center pt-2.5 pb-1 bg-[#12151C]">
-                <div className="w-10 h-1 rounded-full bg-white/20" />
-              </div>
-
-              {/* Sheet Content */}
-              <div className="flex-1 overflow-hidden">
-                {mobileSheet === 'file' ? (
-                  <FileAndScenePanel
-                    language={language}
-                    modelStats={modelStats}
-                    activeSampleId={activeSampleId}
-                    transformSettings={transformSettings}
-                    onSelectFile={(file) => {
-                      handleFileLoad(file);
-                      setMobileSheet('none');
-                    }}
-                    onSelectSample={(sampleId) => {
-                      handleSelectSample(sampleId);
-                      setMobileSheet('none');
-                    }}
-                    onToggleSubMeshVisibility={handleToggleSubMeshVisibility}
-                    onUpdateTransform={handleUpdateTransform}
-                    onResetTransform={() => setTransformSettings(DEFAULT_TRANSFORM)}
-                    onClose={() => setMobileSheet('none')}
-                  />
-                ) : (
-                  <MaterialAndLightingInspector
-                    language={language}
-                    activeTab={inspectorTab}
-                    onTabChange={setInspectorTab}
-                    materialSettings={materialSettings}
-                    lightingSettings={lightingSettings}
-                    onUpdateMaterial={handleUpdateMaterial}
-                    onApplyMaterialPreset={handleApplyMaterialPreset}
-                    onResetMaterial={() => setMaterialSettings(DEFAULT_MATERIAL_SETTINGS)}
-                    onUpdateLighting={handleUpdateLighting}
-                    onApplyLightingPreset={handleApplyLightingPreset}
-                    onResetLighting={() => setLightingSettings(DEFAULT_LIGHTING_SETTINGS)}
-                    onClose={() => setMobileSheet('none')}
-                  />
-                )}
-              </div>
+            {/* Sheet Content */}
+            <div className="flex-1 min-h-0 overflow-hidden">
+              {mobileSheet === 'file' ? (
+                <FileAndScenePanel
+                  language={language}
+                  modelStats={modelStats}
+                  activeSampleId={activeSampleId}
+                  transformSettings={transformSettings}
+                  onSelectFile={(file) => {
+                    handleFileLoad(file);
+                    setMobileSheet('none');
+                  }}
+                  onSelectSample={(sampleId) => {
+                    handleSelectSample(sampleId);
+                    setMobileSheet('none');
+                  }}
+                  onToggleSubMeshVisibility={handleToggleSubMeshVisibility}
+                  onUpdateTransform={handleUpdateTransform}
+                  onResetTransform={() => setTransformSettings(DEFAULT_TRANSFORM)}
+                  onClose={() => setMobileSheet('none')}
+                />
+              ) : (
+                <MaterialAndLightingInspector
+                  language={language}
+                  activeTab={inspectorTab}
+                  onTabChange={(nextTab) => {
+                    setInspectorTab(nextTab);
+                    setMobileSheet(nextTab);
+                  }}
+                  materialSettings={materialSettings}
+                  lightingSettings={lightingSettings}
+                  onUpdateMaterial={handleUpdateMaterial}
+                  onApplyMaterialPreset={handleApplyMaterialPreset}
+                  onResetMaterial={() => setMaterialSettings(DEFAULT_MATERIAL_SETTINGS)}
+                  onUpdateLighting={handleUpdateLighting}
+                  onApplyLightingPreset={handleApplyLightingPreset}
+                  onResetLighting={() => setLightingSettings(DEFAULT_LIGHTING_SETTINGS)}
+                  onClose={() => setMobileSheet('none')}
+                />
+              )}
             </div>
           </div>
         )}
       </div>
 
-      {/* Mobile Studio Bottom Navigation Bar — raised above iOS Safari bottom bar */}
-      <nav className="lg:hidden shrink-0 bg-[#12151C]/95 backdrop-blur-xl border-t border-white/[0.08] grid grid-cols-5 items-center px-1.5 pt-1.5 pb-[calc(env(safe-area-inset-bottom,0px)+18px)] z-30">
+      {/* Mobile Studio Bottom Navigation Bar — iOS Safari & iPhone 14 Pro Max Home Indicator safe */}
+      <nav className="lg:hidden shrink-0 bg-[#12151C]/95 backdrop-blur-xl border-t border-white/[0.08] grid grid-cols-5 items-center px-1.5 pt-1.5 ios-safe-bottom-nav z-30">
         <button
           type="button"
           onClick={() => headerFileInputRef.current?.click()}
-          className="min-h-[44px] flex flex-col items-center justify-center gap-1 py-1 text-[11px] font-semibold text-amber-400 hover:text-amber-300 transition-colors cursor-pointer whitespace-nowrap"
+          className="min-h-[46px] flex flex-col items-center justify-center gap-1 py-1 rounded-xl text-[11px] font-semibold text-amber-400 active:bg-white/5 transition-colors cursor-pointer whitespace-nowrap"
         >
           <FileUp className="w-4 h-4 shrink-0" />
-          <span>{t(language, 'Model Yükle', 'Import')}</span>
+          <span>{t(language, 'Yükle', 'Import')}</span>
         </button>
 
         <button
           type="button"
           onClick={() => openMobileTab('file')}
-          className={`min-h-[44px] flex flex-col items-center justify-center gap-1 py-1 text-[11px] font-medium transition-colors cursor-pointer whitespace-nowrap ${
-            mobileSheet === 'file' ? 'text-amber-400 font-semibold' : 'text-slate-300 hover:text-white'
+          className={`min-h-[46px] flex flex-col items-center justify-center gap-1 py-1 rounded-xl text-[11px] font-medium transition-colors cursor-pointer whitespace-nowrap ${
+            mobileSheet === 'file'
+              ? 'bg-amber-500/15 text-amber-400 font-semibold'
+              : 'text-slate-300 hover:text-white active:bg-white/5'
           }`}
         >
           <Layers className="w-4 h-4 shrink-0" />
@@ -581,10 +599,11 @@ export default function App() {
         <button
           type="button"
           onClick={() => openMobileTab('material')}
-          className={`min-h-[44px] flex flex-col items-center justify-center gap-1 py-1 text-[11px] font-medium transition-colors cursor-pointer whitespace-nowrap ${
-            mobileSheet === 'material' || (mobileSheet !== 'none' && inspectorTab === 'material')
-              ? 'text-amber-400 font-semibold'
-              : 'text-slate-300 hover:text-white'
+          className={`min-h-[46px] flex flex-col items-center justify-center gap-1 py-1 rounded-xl text-[11px] font-medium transition-colors cursor-pointer whitespace-nowrap ${
+            mobileSheet === 'material' ||
+            (mobileSheet !== 'none' && mobileSheet !== 'file' && inspectorTab === 'material')
+              ? 'bg-amber-500/15 text-amber-400 font-semibold'
+              : 'text-slate-300 hover:text-white active:bg-white/5'
           }`}
         >
           <Palette className="w-4 h-4 shrink-0" />
@@ -594,10 +613,11 @@ export default function App() {
         <button
           type="button"
           onClick={() => openMobileTab('lighting')}
-          className={`min-h-[44px] flex flex-col items-center justify-center gap-1 py-1 text-[11px] font-medium transition-colors cursor-pointer whitespace-nowrap ${
-            mobileSheet === 'lighting' || (mobileSheet !== 'none' && inspectorTab === 'lighting')
-              ? 'text-amber-400 font-semibold'
-              : 'text-slate-300 hover:text-white'
+          className={`min-h-[46px] flex flex-col items-center justify-center gap-1 py-1 rounded-xl text-[11px] font-medium transition-colors cursor-pointer whitespace-nowrap ${
+            mobileSheet === 'lighting' ||
+            (mobileSheet !== 'none' && mobileSheet !== 'file' && inspectorTab === 'lighting')
+              ? 'bg-amber-500/15 text-amber-400 font-semibold'
+              : 'text-slate-300 hover:text-white active:bg-white/5'
           }`}
         >
           <Sun className="w-4 h-4 shrink-0" />
@@ -607,7 +627,7 @@ export default function App() {
         <button
           type="button"
           onClick={() => setIsExportModalOpen(true)}
-          className="min-h-[44px] flex flex-col items-center justify-center gap-1 py-1 text-[11px] font-semibold text-amber-400 hover:text-amber-300 transition-colors cursor-pointer whitespace-nowrap"
+          className="min-h-[46px] flex flex-col items-center justify-center gap-1 py-1 rounded-xl text-[11px] font-semibold text-amber-400 active:bg-white/5 transition-colors cursor-pointer whitespace-nowrap"
         >
           <Download className="w-4 h-4 shrink-0" />
           <span>.USDZ</span>

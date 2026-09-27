@@ -100,6 +100,17 @@ input[type="range"].studio-slider:focus-visible::-webkit-slider-thumb {
 /* Touch action optimizations for 3D canvas and sheets */
 .touch-pan-y {
   touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (pointer: coarse) {
+  input[type="range"].studio-slider {
+    height: 8px;
+  }
+  input[type="range"].studio-slider::-webkit-slider-thumb {
+    width: 22px;
+    height: 22px;
+  }
 }
 
 .app-viewport-shell {
@@ -111,6 +122,16 @@ input[type="range"].studio-slider:focus-visible::-webkit-slider-thumb {
   height: 100dvh;
   height: var(--app-height, 100dvh);
   max-height: var(--app-height, 100dvh);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+.ios-safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.ios-safe-bottom-nav {
+  padding-bottom: max(12px, calc(env(safe-area-inset-bottom, 0px) + 8px));
 }
 
 

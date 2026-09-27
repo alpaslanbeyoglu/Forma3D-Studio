@@ -92,56 +92,49 @@ export const MaterialAndLightingInspector: React.FC<
 
   return (
     <aside className="w-full lg:w-96 shrink-0 h-full bg-[#12151C] lg:border-l border-white/[0.07] flex flex-col overflow-hidden">
-      {/* Mobile Drawer Header with Close Button */}
-      {onClose && (
-        <div className="lg:hidden flex items-center justify-between px-5 py-3.5 border-b border-white/[0.07] bg-[#0E1017]">
-          <span className="text-xs font-semibold text-slate-200">
-            {activeTab === 'material'
-              ? t(language, 'Malzeme & Doku Stüdyosu', 'Material & Texture Studio')
-              : t(language, 'Işık ve Sahne Stüdyosu', 'Lighting & Scene Studio')}
-          </span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
-      {/* Segmented Inspector Mode Switcher */}
-      <div className="p-3.5 sm:p-4 border-b border-white/[0.07]">
-        <div className="grid grid-cols-2 gap-1 p-1 bg-[#0B0D11] rounded-lg border border-white/[0.06]">
+      {/* Segmented Inspector Mode Switcher + Mobile Close Button in a Single Compact Bar */}
+      <div className="px-3.5 py-2.5 sm:p-4 border-b border-white/[0.07] flex items-center gap-2 shrink-0 bg-[#0E1017] lg:bg-[#12151C]">
+        <div className="flex-1 grid grid-cols-2 gap-1 p-1 bg-[#0B0D11] rounded-lg border border-white/[0.06]">
           <button
             type="button"
             onClick={() => onTabChange('material')}
-            className={`flex items-center justify-center gap-2 py-2 px-3 rounded-md text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${
+            className={`min-h-[34px] flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-md text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${
               activeTab === 'material'
                 ? 'bg-amber-500 text-slate-950 shadow-sm'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            <Palette className="w-3.5 h-3.5" />
-            <span>{t(language, 'Malzeme ve Renk', 'Material & Color')}</span>
+            <Palette className="w-3.5 h-3.5 shrink-0" />
+            <span>{t(language, 'Malzeme & Renk', 'Material & Color')}</span>
           </button>
           <button
             type="button"
             onClick={() => onTabChange('lighting')}
-            className={`flex items-center justify-center gap-2 py-2 px-3 rounded-md text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${
+            className={`min-h-[34px] flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-md text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${
               activeTab === 'lighting'
                 ? 'bg-amber-500 text-slate-950 shadow-sm'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            <Sun className="w-3.5 h-3.5" />
-            <span>{t(language, 'Işık ve Sahne', 'Lighting & Scene')}</span>
+            <Sun className="w-3.5 h-3.5 shrink-0" />
+            <span>{t(language, 'Işık & Sahne', 'Lighting & Scene')}</span>
           </button>
         </div>
+
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="lg:hidden min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg text-slate-300 hover:text-white bg-white/[0.05] hover:bg-white/10 transition-colors cursor-pointer shrink-0"
+            title={t(language, 'Paneli Kapat', 'Close Panel')}
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* Tab Content Area */}
-      <div className="flex-1 overflow-y-auto divide-y divide-white/[0.07]">
+      <div className="flex-1 overflow-y-auto touch-pan-y divide-y divide-white/[0.07]">
         {activeTab === 'material' ? (
           <>
             {/* 1. Core Material Finish Selector (Mat, Parlak, Şeffaf, Metalik) */}
