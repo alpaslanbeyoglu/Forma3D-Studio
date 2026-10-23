@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
-    "build": "vite build && vite build --outDir bundle",
+    "build": "vite build && vite build --outDir bundle && printf \"import './forma3d-v12.js?v=20260927_v12';\\n\" > bundle/assets/app.js && printf \"@import url('./forma3d-v12.css?v=20260927_v12');\\n\" > bundle/assets/app.css && touch bundle/.nojekyll",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit"

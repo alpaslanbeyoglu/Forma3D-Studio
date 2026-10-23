@@ -18,9 +18,20 @@ export default defineConfig(() => {
       sourcemap: false,
       rollupOptions: {
         output: {
-          entryFileNames: 'assets/app.js',
+          entryFileNames: 'assets/forma3d-v12.js',
           chunkFileNames: 'assets/[name].js',
-          assetFileNames: 'assets/app.[ext]',
+          assetFileNames: 'assets/forma3d-v12.[ext]',
+          manualChunks(id) {
+            if (id.includes('node_modules/three/examples')) {
+              return 'three-addons-v12';
+            }
+            if (id.includes('node_modules/three')) {
+              return 'three-core-v12';
+            }
+            if (id.includes('node_modules')) {
+              return 'vendor-v12';
+            }
+          },
         },
       },
     },

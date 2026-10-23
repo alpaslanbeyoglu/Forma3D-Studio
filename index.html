@@ -79,20 +79,24 @@
         for (var i = 0; i < scripts.length; i++) {
           var src = scripts[i].getAttribute('src') || '';
           if (src.indexOf('@vite/client') !== -1) isViteDev = true;
-          if (src.indexOf('assets/app.js') !== -1 && src.indexOf('dist/assets/app.js') === -1) {
+          if (
+            (src.indexOf('assets/forma3d-v12.js') !== -1 || src.indexOf('assets/app.js') !== -1) &&
+            src.indexOf('bundle/assets/') === -1 &&
+            src.indexOf('dist/assets/') === -1
+          ) {
             isBuiltDist = true;
           }
         }
         if (!isViteDev && !isBuiltDist) {
-          var v = '20260927_v10';
+          var v = '20260927_v12';
           var link = document.createElement('link');
           link.rel = 'stylesheet';
-          link.href = './bundle/assets/app.css?v=' + v;
+          link.href = './bundle/assets/forma3d-v12.css?v=' + v;
           document.head.appendChild(link);
 
           var script = document.createElement('script');
           script.type = 'module';
-          script.src = './bundle/assets/app.js?v=' + v;
+          script.src = './bundle/assets/forma3d-v12.js?v=' + v;
           document.body.appendChild(script);
         }
       })();

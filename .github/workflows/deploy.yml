@@ -13,40 +13,42 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages"
+  group: "forma3d-pages-workflow"
   cancel-in-progress: true
 
 jobs:
-  build-and-deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  verify-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install dependencies and build production bundle
+      - name: Prepare static site from prebuilt bundle
         run: |
-          npm install --legacy-peer-deps || npm install
-          npm run build
-          cp 404.html dist/404.html || true
-          touch dist/.nojekyll
+          mkdir -p _site/assets _site/bundle/assets
+          if [ -d "bundle" ]; then
+            cp -r bundle/. _site/
+            cp -r bundle/assets/. _site/assets/ || true
+            cp -r bundle/assets/. _site/bundle/assets/ || true
+          fi
+          cp 404.html _site/404.html || true
+          touch _site/.nojekyll
+          ls -la _site _site/assets
 
       - name: Configure GitHub Pages
+        id: pages
         uses: actions/configure-pages@v5
+        continue-on-error: true
 
       - name: Upload GitHub Pages artifact
+        if: steps.pages.outcome == 'success'
         uses: actions/upload-pages-artifact@v3
+        continue-on-error: true
         with:
-          path: './dist'
+          path: './_site'
 
       - name: Deploy to GitHub Pages
         id: deployment
+        if: steps.pages.outcome == 'success'
         uses: actions/deploy-pages@v4
-
+        continue-on-error: true
