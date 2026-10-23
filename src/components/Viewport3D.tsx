@@ -125,12 +125,19 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
         preserveDrawingBuffer: true,
       });
     } catch {
-      setWebglLost(true);
-      return;
+      try {
+        renderer = new THREE.WebGLRenderer({
+          antialias: false,
+          preserveDrawingBuffer: true,
+        });
+      } catch {
+        setWebglLost(true);
+        return;
+      }
     }
 
     renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -138,10 +145,15 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     rendererRef.current = renderer;
 
-    container.innerHTML = '';
-    container.appendChild(renderer.domElement);
-
     const canvasEl = renderer.domElement;
+    canvasEl.style.touchAction = 'none';
+    canvasEl.style.display = 'block';
+    canvasEl.style.width = '100%';
+    canvasEl.style.height = '100%';
+
+    container.innerHTML = '';
+    container.style.touchAction = 'none';
+    container.appendChild(canvasEl);
     const handleContextLost = (e: Event) => {
       e.preventDefault();
       setWebglLost(true);

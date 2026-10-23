@@ -4,22 +4,24 @@
     <meta charset="utf-8">
     <title>Forma3D Studio</title>
     <script>
-      // Single Page Apps for GitHub Pages
-      // Redirect to index.html preserving query/hash
-      var l = window.location;
-      var pathSegmentsToKeep = l.hostname.endsWith('.github.io') ? 1 : 0;
-      l.replace(
-        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-        l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
-        l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
-        (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-        l.hash
-      );
+      (function () {
+        var l = window.location;
+        var pathSegmentsToKeep = l.hostname.endsWith('.github.io') ? 1 : 0;
+        var segments = l.pathname.split('/').filter(Boolean);
+        var repoPrefix = segments.length >= pathSegmentsToKeep ? '/' + segments.slice(0, pathSegmentsToKeep).join('/') : '';
+        if (repoPrefix && !repoPrefix.endsWith('/')) {
+          repoPrefix += '/';
+        } else if (!repoPrefix) {
+          repoPrefix = '/';
+        }
+        var targetUrl = l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') + repoPrefix + (l.search || '') + (l.hash || '');
+        window.location.replace(targetUrl);
+      })();
     </script>
   </head>
   <body style="background-color: #0B0D11; color: #F1F5F9; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0;">
     <div style="text-align: center;">
-      <p style="font-size: 14px; color: #94A3B8;">Yönlendiriliyor...</p>
+      <p style="font-size: 14px; color: #94A3B8;">Forma3D Studio'ya yönlendiriliyor...</p>
     </div>
   </body>
 </html>

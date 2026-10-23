@@ -19,47 +19,97 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Syne:wght@600;700&display=swap" rel="stylesheet">
     <style>html,body{overscroll-behavior:none;-webkit-text-size-adjust:100%;color:#f1f5f9;background-color:#0b0d11;width:100%;height:100%;margin:0;padding:0;overflow:hidden}#initial-loader{z-index:9999;background-color:#0b0d11;flex-direction:column;justify-content:center;align-items:center;font-family:system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;display:flex;position:fixed;inset:0}.loader-spinner{border:3px solid #f59e0b33;border-top-color:#f59e0b;border-radius:50%;width:32px;height:32px;margin-bottom:16px;animation:.8s linear infinite spin}@keyframes spin{to{transform:rotate(360deg)}}</style>
-    <script type="module" crossorigin src="./assets/app.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/app.css">
+    <script type="module" crossorigin src="./assets/forma3d-v12.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/rolldown-runtime.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-v12.js">
+    <link rel="modulepreload" crossorigin href="./assets/three-addons-v12.js">
+    <link rel="stylesheet" crossorigin href="./assets/forma3d-v12.css">
   </head>
   <body class="bg-[#0B0D11] text-[#F1F5F9] antialiased selection:bg-amber-500/30 selection:text-amber-200 overflow-hidden">
     <div id="root">
       <div id="initial-loader">
         <div class="loader-spinner"></div>
-        <div style="font-size: 14px; font-weight: 600; color: #E2E8F0; letter-spacing: 0.5px;">Forma3D</div>
-        <div style="font-size: 11px; color: #64748B; margin-top: 4px;">3B Sahne Yükleniyor...</div>
+        <div style="font-size: 15px; font-weight: 700; color: #F1F5F9; letter-spacing: 0.5px;">Forma3D Studio</div>
+        <div id="loader-subtext" style="font-size: 12px; color: #94A3B8; margin-top: 6px;">3B Sahne Yükleniyor...</div>
+        <div id="loader-error-card" style="display: none; margin-top: 18px; max-width: 320px; padding: 14px 16px; background-color: rgba(225, 29, 72, 0.12); border: 1px solid rgba(225, 29, 72, 0.35); border-radius: 12px; text-align: center;">
+          <div style="font-size: 12px; font-weight: 600; color: #FDA4AF; margin-bottom: 6px;">Yükleme Zaman Aşımına Uğradı</div>
+          <p id="loader-error-details" style="font-size: 11px; color: #E2E8F0; margin: 0 0 12px 0; word-break: break-word; line-height: 1.4;">3B motoru başlatılamadı. Sayfayı yenileyerek tekrar deneyebilirsiniz.</p>
+          <button type="button" onclick="window.location.reload(true)" style="background-color: #F59E0B; color: #0B0D11; font-weight: 700; font-size: 12px; padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer;">
+            Sayfayı Yeniden Yükle
+          </button>
+        </div>
       </div>
     </div>
+
+    <!-- Development entrypoint for Vite dev server -->
+
+    <!-- Universal Static Fallback & Diagnostics for GitHub Pages -->
     <script>
       (function () {
-        if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.getRegistrations().then(function (regs) {
-            for (var i = 0; i < regs.length; i++) {
-              regs[i].unregister();
+        // Track unhandled errors for the diagnostic card
+        window.__LAST_BOOT_ERROR__ = null;
+        window.addEventListener('error', function (e) {
+          window.__LAST_BOOT_ERROR__ = e.message || (e.error && e.error.message) || String(e);
+        });
+
+        // 5-second watchdog timer: if React does not boot, reveal diagnostic card
+        setTimeout(function () {
+          if (!window.__FORMA3D_BOOTED__) {
+            var card = document.getElementById('loader-error-card');
+            var details = document.getElementById('loader-error-details');
+            if (card) {
+              card.style.display = 'block';
+              if (window.__LAST_BOOT_ERROR__ && details) {
+                details.textContent = window.__LAST_BOOT_ERROR__;
+              }
             }
-          });
-        }
-        var scripts = document.getElementsByTagName('script');
+          }
+        }, 5000);
+
+        // Check if running under active Vite dev server
         var isViteDev = false;
-        var isBuiltDist = false;
+        var scripts = document.getElementsByTagName('script');
         for (var i = 0; i < scripts.length; i++) {
           var src = scripts[i].getAttribute('src') || '';
-          if (src.indexOf('@vite/client') !== -1) isViteDev = true;
-          if (src.indexOf('assets/app.js') !== -1 && src.indexOf('dist/assets/app.js') === -1) {
-            isBuiltDist = true;
+          if (src.indexOf('@vite/client') !== -1) {
+            isViteDev = true;
+            break;
           }
         }
-        if (!isViteDev && !isBuiltDist) {
-          var v = '20260927_v10';
-          var link = document.createElement('link');
-          link.rel = 'stylesheet';
-          link.href = './bundle/assets/app.css?v=' + v;
-          document.head.appendChild(link);
 
-          var script = document.createElement('script');
-          script.type = 'module';
-          script.src = './bundle/assets/app.js?v=' + v;
-          document.body.appendChild(script);
+        // On static hosting (e.g. GitHub Pages) where /src/main.tsx is not compiled:
+        if (!isViteDev) {
+          var loadBundle = function () {
+            if (window.__FORMA3D_BOOTED__) return;
+
+            // 1. Ensure production CSS is linked
+            var hasCss = document.querySelector('link[href*="forma3d-v12.css"]') || document.querySelector('link[href*="app.css"]');
+            if (!hasCss) {
+              var cssLink = document.createElement('link');
+              cssLink.rel = 'stylesheet';
+              cssLink.href = './assets/forma3d-v12.css';
+              cssLink.onerror = function () {
+                cssLink.href = './bundle/assets/forma3d-v12.css';
+              };
+              document.head.appendChild(cssLink);
+            }
+
+            // 2. Load production JS bundle
+            var jsScript = document.createElement('script');
+            jsScript.type = 'module';
+            jsScript.crossOrigin = 'anonymous';
+            jsScript.src = './assets/forma3d-v12.js';
+            jsScript.onerror = function () {
+              var fallbackScript = document.createElement('script');
+              fallbackScript.type = 'module';
+              fallbackScript.crossOrigin = 'anonymous';
+              fallbackScript.src = './bundle/assets/forma3d-v12.js';
+              document.body.appendChild(fallbackScript);
+            };
+            document.body.appendChild(jsScript);
+          };
+
+          loadBundle();
         }
       })();
     </script>

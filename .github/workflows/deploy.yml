@@ -23,17 +23,24 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Prepare static site from prebuilt bundle
+      - name: Prepare static site distribution
         run: |
           mkdir -p _site/assets _site/bundle/assets
+          # If prebuilt bundle exists, populate _site
           if [ -d "bundle" ]; then
             cp -r bundle/. _site/
-            cp -r bundle/assets/. _site/assets/ || true
-            cp -r bundle/assets/. _site/bundle/assets/ || true
+            cp -r bundle/assets/. _site/assets/ 2>/dev/null || true
+            cp -r bundle/assets/. _site/bundle/assets/ 2>/dev/null || true
           fi
-          cp 404.html _site/404.html || true
+          # Also populate from root assets if available
+          if [ -d "assets" ]; then
+            cp -r assets/. _site/assets/ 2>/dev/null || true
+          fi
+          cp 404.html _site/404.html 2>/dev/null || true
           touch _site/.nojekyll
-          ls -la _site _site/assets
+          echo "Prepared site files:"
+          ls -la _site
+          ls -la _site/assets 2>/dev/null || true
 
       - name: Configure GitHub Pages
         id: pages
