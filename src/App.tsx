@@ -12,11 +12,14 @@ import {
   Globe,
   ChevronUp,
   ChevronDown,
+  Box,
 } from 'lucide-react';
 import {
+  DEFAULT_MOLD_SETTINGS,
   LightingSettings,
   MaterialSettings,
   ModelStats,
+  MoldSettings,
   TransformSettings,
 } from './types/studio';
 import {
@@ -42,7 +45,7 @@ const DEFAULT_TRANSFORM: TransformSettings = {
   alignToFloor: true,
 };
 
-type MobileSheetType = 'none' | 'file' | 'material' | 'lighting';
+type MobileSheetType = 'none' | 'file' | 'material' | 'lighting' | 'mold';
 
 export default function App() {
   const [language, setLanguage] = useState<Language>(() => {
@@ -57,7 +60,7 @@ export default function App() {
 
   const [modelGroup, setModelGroup] = useState<THREE.Group | null>(null);
   const [activeSampleId, setActiveSampleId] = useState<string | null>('turbine_stl');
-  const [inspectorTab, setInspectorTab] = useState<'material' | 'lighting'>('material');
+  const [inspectorTab, setInspectorTab] = useState<'material' | 'lighting' | 'mold'>('material');
   const [mobileSheet, setMobileSheet] = useState<MobileSheetType>('none');
   const [isMobileSheetExpanded, setIsMobileSheetExpanded] = useState(false);
   const [materialSettings, setMaterialSettings] = useState<MaterialSettings>(
@@ -66,6 +69,14 @@ export default function App() {
   const [lightingSettings, setLightingSettings] = useState<LightingSettings>(
     DEFAULT_LIGHTING_SETTINGS
   );
+  const [moldSettings, setMoldSettings] = useState<MoldSettings>(
+    DEFAULT_MOLD_SETTINGS
+  );
+  const [moldGroups, setMoldGroups] = useState<{
+    moldGroup: THREE.Group | null;
+    partAGroup: THREE.Group | null;
+    partBGroup: THREE.Group | null;
+  }>({ moldGroup: null, partAGroup: null, partBGroup: null });
   const [transformSettings, setTransformSettings] =
     useState<TransformSettings>(DEFAULT_TRANSFORM);
 
@@ -307,8 +318,12 @@ export default function App() {
     setTransformSettings((prev) => ({ ...prev, ...partial }));
   };
 
+  const handleUpdateMoldSettings = (partial: Partial<MoldSettings>) => {
+    setMoldSettings((prev) => ({ ...prev, ...partial }));
+  };
+
   const openMobileTab = (tab: MobileSheetType) => {
-    if (tab === 'material' || tab === 'lighting') {
+    if (tab === 'material' || tab === 'lighting' || tab === 'mold') {
       setInspectorTab(tab);
     }
     setMobileSheet((current) => {
@@ -319,6 +334,17 @@ export default function App() {
       return tab;
     });
   };
+
+  const handleMoldGroupCreated = useCallback(
+    (groups: {
+      moldGroup: THREE.Group;
+      partAGroup: THREE.Group;
+      partBGroup: THREE.Group;
+    }) => {
+      setMoldGroups(groups);
+    },
+    []
+  );
 
   return (
     <div className="app-viewport-shell flex flex-col overflow-hidden bg-[#0B0D11] text-[#F1F5F9]">
@@ -370,6 +396,19 @@ export default function App() {
           >
             {t(language, 'Işık Stüdyosu', 'Lighting Studio')}
           </button>
+          <button
+            type="button"
+            onClick={() => {
+              setMoldSettings((prev) => ({ ...prev, enabled: true }));
+              setInspectorTab('mold');
+            }}
+            className={`hover:text-white hover:underline underline-offset-4 transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1 ${
+              inspectorTab === 'mold' ? 'text-cyan-400 font-semibold' : ''
+            }`}
+          >
+            <Box className="w-3.5 h-3.5 text-cyan-400" />
+            <span>{t(language, '3D Kalıp Studio', '3D Mold Studio')}</span>
+          </button>
         </nav>
 
         {/* Zone 3: Language Switcher & Primary Actions */}
@@ -382,6 +421,19 @@ export default function App() {
           >
             <Globe className="w-3.5 h-3.5 text-amber-400 shrink-0" />
             <span>{language === 'tr' ? 'TR · EN' : 'EN · TR'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setMoldSettings((prev) => ({ ...prev, enabled: true }));
+              setInspectorTab('mold');
+            }}
+            className="hidden sm:inline-flex min-h-[38px] items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/50 text-xs font-semibold text-cyan-300 transition-colors cursor-pointer whitespace-nowrap shrink-0"
+            title={t(language, '3D Silikon Kalıp Üretim Modülünü Aç', 'Open 3D Mold Studio')}
+          >
+            <Box className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+            <span>{t(language, 'Kalıp Üret', '3D Mold')}</span>
           </button>
 
           <input
@@ -479,9 +531,11 @@ export default function App() {
             modelGroup={modelGroup}
             materialSettings={materialSettings}
             lightingSettings={lightingSettings}
+            moldSettings={moldSettings}
             transformSettings={transformSettings}
             onUpdateLighting={handleUpdateLighting}
             onUpdateMaterial={handleUpdateMaterial}
+            onMoldGroupCreated={handleMoldGroupCreated}
             onFileDrop={handleFileLoad}
             isLoading={isLoading}
             loadingMessage={loadingMessage}
@@ -489,7 +543,7 @@ export default function App() {
           />
         </main>
 
-        {/* Right Desktop Sidebar: Simplified Material Studio & 3-Point Lighting Inspector */}
+        {/* Right Desktop Sidebar: Simplified Material Studio, Lighting Inspector & 3D Mold Studio */}
         <div className="hidden lg:flex shrink-0 h-full">
           <MaterialAndLightingInspector
             language={language}
@@ -497,12 +551,20 @@ export default function App() {
             onTabChange={setInspectorTab}
             materialSettings={materialSettings}
             lightingSettings={lightingSettings}
+            moldSettings={moldSettings}
+            modelStats={modelStats}
+            modelGroup={modelGroup}
+            partAGroup={moldGroups.partAGroup}
+            partBGroup={moldGroups.partBGroup}
+            moldGroup={moldGroups.moldGroup}
             onUpdateMaterial={handleUpdateMaterial}
             onApplyMaterialPreset={handleApplyMaterialPreset}
             onResetMaterial={() => setMaterialSettings(DEFAULT_MATERIAL_SETTINGS)}
             onUpdateLighting={handleUpdateLighting}
             onApplyLightingPreset={handleApplyLightingPreset}
             onResetLighting={() => setLightingSettings(DEFAULT_LIGHTING_SETTINGS)}
+            onUpdateMoldSettings={handleUpdateMoldSettings}
+            onResetMoldSettings={() => setMoldSettings(DEFAULT_MOLD_SETTINGS)}
           />
         </div>
 
@@ -558,12 +620,20 @@ export default function App() {
                   }}
                   materialSettings={materialSettings}
                   lightingSettings={lightingSettings}
+                  moldSettings={moldSettings}
+                  modelStats={modelStats}
+                  modelGroup={modelGroup}
+                  partAGroup={moldGroups.partAGroup}
+                  partBGroup={moldGroups.partBGroup}
+                  moldGroup={moldGroups.moldGroup}
                   onUpdateMaterial={handleUpdateMaterial}
                   onApplyMaterialPreset={handleApplyMaterialPreset}
                   onResetMaterial={() => setMaterialSettings(DEFAULT_MATERIAL_SETTINGS)}
                   onUpdateLighting={handleUpdateLighting}
                   onApplyLightingPreset={handleApplyLightingPreset}
                   onResetLighting={() => setLightingSettings(DEFAULT_LIGHTING_SETTINGS)}
+                  onUpdateMoldSettings={handleUpdateMoldSettings}
+                  onResetMoldSettings={() => setMoldSettings(DEFAULT_MOLD_SETTINGS)}
                   onClose={() => setMobileSheet('none')}
                 />
               )}
@@ -608,6 +678,20 @@ export default function App() {
         >
           <Palette className="w-4 h-4 shrink-0" />
           <span>{t(language, 'Malzeme', 'Material')}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => openMobileTab('mold')}
+          className={`min-h-[46px] flex flex-col items-center justify-center gap-1 py-1 rounded-xl text-[11px] font-medium transition-colors cursor-pointer whitespace-nowrap ${
+            mobileSheet === 'mold' ||
+            (mobileSheet !== 'none' && mobileSheet !== 'file' && inspectorTab === 'mold')
+              ? 'bg-cyan-500/15 text-cyan-400 font-semibold'
+              : 'text-slate-300 hover:text-white active:bg-white/5'
+          }`}
+        >
+          <Box className="w-4 h-4 shrink-0 text-cyan-400" />
+          <span>{t(language, 'Kalıp', 'Mold')}</span>
         </button>
 
         <button

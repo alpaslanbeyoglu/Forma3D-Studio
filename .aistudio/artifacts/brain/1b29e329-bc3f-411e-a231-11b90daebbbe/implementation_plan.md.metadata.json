@@ -1,0 +1,6 @@
+{
+  "summary":  "Implementation plan for adding procedural 3D silicone mold generation (2-part split mold, single-part container mold, alignment pins, pouring sprue, air vents, mold clamping lugs, silicone volume calculator, and STL/GLB/USDZ mold export) to Forma3D Studio.",
+  "updatedAt":  "2026-11-02T15:00:03.491181575Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}

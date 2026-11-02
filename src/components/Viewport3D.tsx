@@ -6,9 +6,11 @@ import {
   CameraPresetView,
   LightingSettings,
   MaterialSettings,
+  MoldSettings,
   TransformSettings,
 } from '../types/studio';
 import { getProceduralSurfaceTexture } from '../utils/proceduralTextures';
+import { createMoldGroup } from '../utils/moldGenerator';
 import { Language, t } from '../utils/i18n';
 import {
   Box,
@@ -27,9 +29,15 @@ interface Viewport3DProps {
   modelGroup: THREE.Group | null;
   materialSettings: MaterialSettings;
   lightingSettings: LightingSettings;
+  moldSettings: MoldSettings;
   transformSettings: TransformSettings;
   onUpdateLighting: (partial: Partial<LightingSettings>) => void;
   onUpdateMaterial: (partial: Partial<MaterialSettings>) => void;
+  onMoldGroupCreated?: (groups: {
+    moldGroup: THREE.Group;
+    partAGroup: THREE.Group;
+    partBGroup: THREE.Group;
+  }) => void;
   onFileDrop: (file: File) => void;
   isLoading: boolean;
   loadingMessage: string;
@@ -54,9 +62,11 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
   modelGroup,
   materialSettings,
   lightingSettings,
+  moldSettings,
   transformSettings,
   onUpdateLighting,
   onUpdateMaterial,
+  onMoldGroupCreated,
   onFileDrop,
   isLoading,
   loadingMessage,
@@ -68,6 +78,7 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
   const modelHolderRef = useRef<THREE.Group | null>(null);
+  const moldHolderRef = useRef<THREE.Group | null>(null);
 
   const keyLightRef = useRef<THREE.DirectionalLight | null>(null);
   const fillLightRef = useRef<THREE.DirectionalLight | null>(null);
@@ -244,6 +255,11 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
     scene.add(modelHolder);
     modelHolderRef.current = modelHolder;
 
+    // Mold Holder Group
+    const moldHolder = new THREE.Group();
+    scene.add(moldHolder);
+    moldHolderRef.current = moldHolder;
+
     // Shared PBR Material
     const sharedMat = new THREE.MeshPhysicalMaterial({
       color: new THREE.Color(materialSettings.color),
@@ -362,6 +378,42 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
 
     holder.add(modelGroup);
   }, [modelGroup]);
+
+  // Keep latest callback ref to prevent infinite re-render loop
+  const onMoldGroupCreatedRef = useRef(onMoldGroupCreated);
+  useEffect(() => {
+    onMoldGroupCreatedRef.current = onMoldGroupCreated;
+  }, [onMoldGroupCreated]);
+
+  // Re-generate silicone mold geometry when modelGroup or moldSettings change
+  useEffect(() => {
+    const moldHolder = moldHolderRef.current;
+    if (!moldHolder) return;
+
+    moldHolder.clear();
+
+    if (!modelGroup || !moldSettings.enabled) {
+      if (onMoldGroupCreatedRef.current) {
+        onMoldGroupCreatedRef.current({
+          moldGroup: new THREE.Group(),
+          partAGroup: new THREE.Group(),
+          partBGroup: new THREE.Group(),
+        });
+      }
+      return;
+    }
+
+    const { moldGroup, partAGroup, partBGroup } = createMoldGroup(
+      modelGroup,
+      moldSettings
+    );
+
+    moldHolder.add(moldGroup);
+
+    if (onMoldGroupCreatedRef.current) {
+      onMoldGroupCreatedRef.current({ moldGroup, partAGroup, partBGroup });
+    }
+  }, [modelGroup, moldSettings]);
 
   // Apply transform settings (scale, rotation, floor alignment)
   useEffect(() => {

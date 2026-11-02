@@ -107,3 +107,44 @@ export interface LightingPreset {
   description: string;
   settings: Partial<LightingSettings>;
 }
+
+export interface MoldSettings {
+  enabled: boolean;
+  moldType: 'two-part' | 'one-part';
+  splitAxis: 'x' | 'y' | 'z';
+  splitOffset: number; // percentage offset -50 to +50
+  wallThickness: number; // mm (default 15)
+  bottomThickness: number; // mm (default 10)
+  pinRadius: number; // mm (default 4)
+  pinHeight: number; // mm (default 6)
+  addSprue: boolean; // Pouring funnel / sprue
+  sprueRadius: number; // mm (default 8)
+  addAirVents: boolean; // Air escape channels
+  addLugs: boolean; // Clamping ears with holes
+  siliconeDensity: number; // g/cm³ (default 1.1)
+  explodedDistance: number; // mm (0 to 100)
+  previewMode: 'assembly' | 'partA' | 'partB' | 'modelOnly';
+  transparentMold: boolean;
+  moldColor: string;
+}
+
+export const DEFAULT_MOLD_SETTINGS: MoldSettings = {
+  enabled: false,
+  moldType: 'two-part',
+  splitAxis: 'y',
+  splitOffset: 0,
+  wallThickness: 15,
+  bottomThickness: 10,
+  pinRadius: 4,
+  pinHeight: 6,
+  addSprue: true,
+  sprueRadius: 8,
+  addAirVents: true,
+  addLugs: true,
+  siliconeDensity: 1.1,
+  explodedDistance: 0,
+  previewMode: 'assembly',
+  transparentMold: true,
+  moldColor: '#38BDF8',
+};
+

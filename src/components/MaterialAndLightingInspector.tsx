@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
+import * as THREE from 'three';
 import {
   LightingSettings,
   MaterialSettings,
+  MoldSettings,
+  ModelStats,
   SingleLightConfig,
   SurfacePatternType,
 } from '../types/studio';
@@ -24,20 +27,30 @@ import {
   X,
   Sliders,
   Check,
+  Box,
 } from 'lucide-react';
+import { SiliconeMoldInspector } from './SiliconeMoldInspector';
 
 interface MaterialAndLightingInspectorProps {
   language: Language;
-  activeTab: 'material' | 'lighting';
-  onTabChange: (tab: 'material' | 'lighting') => void;
+  activeTab: 'material' | 'lighting' | 'mold';
+  onTabChange: (tab: 'material' | 'lighting' | 'mold') => void;
   materialSettings: MaterialSettings;
   lightingSettings: LightingSettings;
+  moldSettings?: MoldSettings;
+  modelStats?: ModelStats;
+  modelGroup?: THREE.Group | null;
+  partAGroup?: THREE.Group | null;
+  partBGroup?: THREE.Group | null;
+  moldGroup?: THREE.Group | null;
   onUpdateMaterial: (partial: Partial<MaterialSettings>) => void;
   onApplyMaterialPreset?: (presetId: string) => void;
   onResetMaterial: () => void;
   onUpdateLighting: (partial: Partial<LightingSettings>) => void;
   onApplyLightingPreset: (presetId: string) => void;
   onResetLighting: () => void;
+  onUpdateMoldSettings?: (partial: Partial<MoldSettings>) => void;
+  onResetMoldSettings?: () => void;
   onClose?: () => void;
 }
 
@@ -49,11 +62,19 @@ export const MaterialAndLightingInspector: React.FC<
   onTabChange,
   materialSettings,
   lightingSettings,
+  moldSettings,
+  modelStats,
+  modelGroup,
+  partAGroup,
+  partBGroup,
+  moldGroup,
   onUpdateMaterial,
   onResetMaterial,
   onUpdateLighting,
   onApplyLightingPreset,
   onResetLighting,
+  onUpdateMoldSettings,
+  onResetMoldSettings,
   onClose,
 }) => {
   const [showAdvancedSliders, setShowAdvancedSliders] = useState(false);
@@ -94,30 +115,42 @@ export const MaterialAndLightingInspector: React.FC<
     <aside className="w-full lg:w-96 shrink-0 h-full bg-[#12151C] lg:border-l border-white/[0.07] flex flex-col overflow-hidden">
       {/* Segmented Inspector Mode Switcher + Mobile Close Button in a Single Compact Bar */}
       <div className="px-3.5 py-2.5 sm:p-4 border-b border-white/[0.07] flex items-center gap-2 shrink-0 bg-[#0E1017] lg:bg-[#12151C]">
-        <div className="flex-1 grid grid-cols-2 gap-1 p-1 bg-[#0B0D11] rounded-lg border border-white/[0.06]">
+        <div className="flex-1 grid grid-cols-3 gap-1 p-1 bg-[#0B0D11] rounded-lg border border-white/[0.06]">
           <button
             type="button"
             onClick={() => onTabChange('material')}
-            className={`min-h-[34px] flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-md text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${
+            className={`min-h-[34px] flex items-center justify-center gap-1.5 py-1.5 px-1.5 rounded-md text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${
               activeTab === 'material'
                 ? 'bg-amber-500 text-slate-950 shadow-sm'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
             <Palette className="w-3.5 h-3.5 shrink-0" />
-            <span>{t(language, 'Malzeme & Renk', 'Material & Color')}</span>
+            <span>{t(language, 'Malzeme', 'Material')}</span>
           </button>
           <button
             type="button"
             onClick={() => onTabChange('lighting')}
-            className={`min-h-[34px] flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-md text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${
+            className={`min-h-[34px] flex items-center justify-center gap-1.5 py-1.5 px-1.5 rounded-md text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${
               activeTab === 'lighting'
                 ? 'bg-amber-500 text-slate-950 shadow-sm'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
             <Sun className="w-3.5 h-3.5 shrink-0" />
-            <span>{t(language, 'Işık & Sahne', 'Lighting & Scene')}</span>
+            <span>{t(language, 'Işık', 'Lighting')}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onTabChange('mold')}
+            className={`min-h-[34px] flex items-center justify-center gap-1.5 py-1.5 px-1.5 rounded-md text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${
+              activeTab === 'mold'
+                ? 'bg-cyan-500 text-slate-950 shadow-sm font-bold'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Box className="w-3.5 h-3.5 shrink-0" />
+            <span>{t(language, '3D Kalıp', '3D Mold')}</span>
           </button>
         </div>
 
@@ -134,8 +167,23 @@ export const MaterialAndLightingInspector: React.FC<
       </div>
 
       {/* Tab Content Area */}
-      <div className="flex-1 overflow-y-auto touch-pan-y divide-y divide-white/[0.07]">
-        {activeTab === 'material' ? (
+      {activeTab === 'mold' ? (
+        moldSettings && modelStats ? (
+          <SiliconeMoldInspector
+            language={language}
+            moldSettings={moldSettings}
+            modelStats={modelStats}
+            modelGroup={modelGroup || null}
+            partAGroup={partAGroup || null}
+            partBGroup={partBGroup || null}
+            moldGroup={moldGroup || null}
+            onUpdateMoldSettings={onUpdateMoldSettings || (() => {})}
+            onResetMoldSettings={onResetMoldSettings || (() => {})}
+          />
+        ) : null
+      ) : (
+        <div className="flex-1 overflow-y-auto touch-pan-y divide-y divide-white/[0.07]">
+          {activeTab === 'material' ? (
           <>
             {/* 1. Core Material Finish Selector (Mat, Parlak, Şeffaf, Metalik) */}
             <div className="p-4 sm:p-5">
@@ -931,6 +979,7 @@ export const MaterialAndLightingInspector: React.FC<
           </>
         )}
       </div>
+      )}
     </aside>
   );
 };
